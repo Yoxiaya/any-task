@@ -31,12 +31,12 @@ import CascadingContextMenu from './components/CascadingContextMenu';
 import ProcessTaskDetail from './components/ProcessTaskDetail';
 import TopLevelTaskDetail from './components/TopLevelTaskDetail';
 import ScheduledTaskDetail from './components/ScheduledTaskDetail';
+import AddTaskMenu from './components/AddTaskMenu';
 
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
   const [taskSteps, setTaskSteps] = useState<Record<string, TaskStep[]>>({});
   const [selectedTaskId, setSelectedTaskId] = useState('P-1001');
-  const [isNewTaskMenuOpen, setIsNewTaskMenuOpen] = useState(false);
   const [editingStep, setEditingStep] = useState<TaskStep | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -44,7 +44,7 @@ export default function App() {
   const [newTaskType, setNewTaskType] = useState<TaskType>('流程');
   const [taskNotes, setTaskNotes] = useState<Record<string, string>>({});
   
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; isOpen: boolean }>({
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; isOpen: boolean; targetStepId?: string }>({
     x: 0,
     y: 0,
     isOpen: false,
@@ -72,7 +72,11 @@ export default function App() {
 
   const handleCreateStep = (newStepData: Omit<TaskStep, 'id'>) => {
     const currentTaskSteps = taskSteps[selectedTaskId] || [];
-    const newId = (currentTaskSteps.length + 1).toString().padStart(2, '0');
+    const maxId = currentTaskSteps.reduce((max, step) => {
+      const num = parseInt(step.id, 10);
+      return isNaN(num) ? max : Math.max(max, num);
+    }, 0);
+    const newId = (maxId + 1).toString().padStart(2, '0');
     const newStep: TaskStep = {
       id: newId,
       ...newStepData,
@@ -85,11 +89,57 @@ export default function App() {
 
   const handleAddTaskFromMenu = (task: Task) => {
     const currentTaskSteps = taskSteps[selectedTaskId] || [];
-    const newId = (currentTaskSteps.length + 1).toString().padStart(2, '0');
+    
+    if (contextMenu.targetStepId) {
+      // Replace logic
+      setTaskSteps(prev => ({
+        ...prev,
+        [selectedTaskId]: (prev[selectedTaskId] || []).map(s => 
+          s.id === contextMenu.targetStepId 
+            ? { 
+                ...s, 
+                category: task.type === '顶级' ? 'SEC_POL' : 'CACHE_WARM',
+                name: task.name,
+                successJump: '',
+                failureJump: '',
+                failureTip: '',
+              } 
+            : s
+        )
+      }));
+    } else {
+      // Add logic
+      const maxId = currentTaskSteps.reduce((max, step) => {
+        const num = parseInt(step.id, 10);
+        return isNaN(num) ? max : Math.max(max, num);
+      }, 0);
+      const newId = (maxId + 1).toString().padStart(2, '0');
+      const newStep: TaskStep = {
+        id: newId,
+        category: task.type === '顶级' ? 'SEC_POL' : 'CACHE_WARM',
+        name: task.name,
+        successJump: '',
+        failureJump: '',
+        failureTip: '',
+      };
+      setTaskSteps(prev => ({
+        ...prev,
+        [selectedTaskId]: [...currentTaskSteps, newStep]
+      }));
+    }
+  };
+
+  const handleAddEmptyRow = () => {
+    const currentTaskSteps = taskSteps[selectedTaskId] || [];
+    const maxId = currentTaskSteps.reduce((max, step) => {
+      const num = parseInt(step.id, 10);
+      return isNaN(num) ? max : Math.max(max, num);
+    }, 0);
+    const newId = (maxId + 1).toString().padStart(2, '0');
     const newStep: TaskStep = {
       id: newId,
-      category: task.type === '顶级' ? 'TOP_LEVEL' : 'PROCESS',
-      name: task.name,
+      category: '-',
+      name: '',
       successJump: '',
       failureJump: '',
       failureTip: '',
@@ -100,13 +150,35 @@ export default function App() {
     }));
   };
 
-  const handleContextMenu = (e: React.MouseEvent) => {
+  const handleContextMenu = (e: React.MouseEvent, stepId?: string) => {
     e.preventDefault();
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
       isOpen: true,
+      targetStepId: stepId,
     });
+  };
+
+  const handleDeleteStep = (stepId: string) => {
+    setTaskSteps(prev => ({
+      ...prev,
+      [selectedTaskId]: (prev[selectedTaskId] || []).filter(s => s.id !== stepId)
+    }));
+  };
+
+  const handleUpdateStep = (stepId: string, updates: Partial<TaskStep>) => {
+    setTaskSteps(prev => ({
+      ...prev,
+      [selectedTaskId]: (prev[selectedTaskId] || []).map(s => s.id === stepId ? { ...s, ...updates } : s)
+    }));
+  };
+
+  const handleJumpToTask = (taskName: string) => {
+    const targetTask = tasks.find(t => t.name === taskName);
+    if (targetTask) {
+      setSelectedTaskId(targetTask.id);
+    }
   };
 
   const currentNotes = taskNotes[selectedTaskId] || '';
@@ -116,73 +188,10 @@ export default function App() {
       {/* Action Bar */}
       <header className="w-full bg-surface-container-lowest border-b border-outline-variant/15 px-6 py-3 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <button 
-              onClick={() => setIsNewTaskMenuOpen(!isNewTaskMenuOpen)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-dim transition-colors"
-            >
-              <Plus size={18} />
-              <span>新建任务</span>
-              <ChevronDown size={14} />
-            </button>
-            
-            <AnimatePresence>
-              {isNewTaskMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setIsNewTaskMenuOpen(false)} />
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute left-0 mt-2 w-56 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl z-40 py-1"
-                  >
-                    <div className="py-1">
-                      <button 
-                        onClick={() => {
-                          setNewTaskType('流程');
-                          setIsCreateModalOpen(true);
-                          setIsNewTaskMenuOpen(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors"
-                      >
-                        <LayoutTemplate size={18} />
-                        <span>流程任务</span>
-                      </button>
-
-                      <div className="relative group/sub">
-                        <div className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer border-t border-outline-variant/10">
-                          <div className="flex items-center gap-3">
-                            <Layers size={18} />
-                            <span>通用选项</span>
-                          </div>
-                          <ChevronRight size={14} />
-                        </div>
-                        
-                        {/* Submenu */}
-                        <div className="absolute left-full top-0 ml-0.5 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-1 hidden group-hover/sub:block">
-                          <button 
-                            onClick={() => {
-                              setNewTaskType('定时');
-                              setIsCreateModalOpen(true);
-                              setIsNewTaskMenuOpen(false);
-                            }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors"
-                          >
-                            <Clock size={18} />
-                            <span>定时任务</span>
-                          </button>
-                          <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors border-t border-outline-variant/10">
-                            <CheckSquare size={18} />
-                            <span>普通任务</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+          <AddTaskMenu onAddTask={(type) => {
+            setNewTaskType(type);
+            setIsCreateModalOpen(true);
+          }} />
 
           <button className="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-semibold border border-outline-variant/20 hover:bg-surface-container-highest transition-colors">
             <FileUp size={18} />
@@ -227,30 +236,18 @@ export default function App() {
             <table className="w-full text-left border-collapse table-fixed">
               <thead className="sticky top-0 bg-surface-container-high/90 backdrop-blur shadow-sm z-10">
                 <tr>
-                  <th className="px-2 py-3 w-8"></th>
                   <th className="px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider w-[25%]">ID</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider w-[50%]">任务名</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider w-[25%]">类型</th>
                 </tr>
               </thead>
-              <Reorder.Group 
-                as="tbody" 
-                axis="y" 
-                values={tasks} 
-                onReorder={setTasks}
-                className="divide-y divide-outline-variant/10"
-              >
+              <tbody className="divide-y divide-outline-variant/10">
                 {tasks.map((task) => (
-                  <Reorder.Item 
-                    as="tr"
+                  <tr 
                     key={task.id}
-                    value={task}
                     onClick={() => setSelectedTaskId(task.id)}
                     className={`hover:bg-primary/5 cursor-pointer transition-colors ${selectedTaskId === task.id ? 'bg-surface-container-lowest' : ''}`}
                   >
-                    <td className="px-2 py-3.5 text-center">
-                      <GripVertical size={18} className="text-outline-variant hover:text-primary cursor-grab active:cursor-grabbing transition-colors" />
-                    </td>
                     <td className={`px-4 py-3.5 text-xs font-mono truncate ${selectedTaskId === task.id ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
                       {task.id}
                     </td>
@@ -262,9 +259,9 @@ export default function App() {
                         {task.type}
                       </span>
                     </td>
-                  </Reorder.Item>
+                  </tr>
                 ))}
-              </Reorder.Group>
+              </tbody>
             </table>
           </div>
         </section>
@@ -278,6 +275,15 @@ export default function App() {
             onUpdateNotes={(value) => setTaskNotes(prev => ({ ...prev, [selectedTaskId]: value }))}
             onEditStep={handleEditStep}
             onContextMenu={handleContextMenu}
+            onReorderSteps={(newSteps) => {
+              setTaskSteps(prev => ({
+                ...prev,
+                [selectedTaskId]: newSteps
+              }));
+            }}
+            onDeleteStep={handleDeleteStep}
+            onUpdateStep={handleUpdateStep}
+            onJumpToTask={handleJumpToTask}
           />
         ) : selectedTask.type === '定时' ? (
           <ScheduledTaskDetail 
@@ -309,6 +315,7 @@ export default function App() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onConfirm={handleCreateTask}
+        existingTasks={tasks}
       />
 
       <CreateStepModal 
@@ -324,6 +331,13 @@ export default function App() {
         onClose={() => setContextMenu({ ...contextMenu, isOpen: false })}
         tasks={tasks}
         onSelectTask={handleAddTaskFromMenu}
+        onAddEmptyRow={handleAddEmptyRow}
+        onDeleteRow={() => {
+          if (contextMenu.targetStepId) {
+            handleDeleteStep(contextMenu.targetStepId);
+          }
+        }}
+        hasTarget={!!contextMenu.targetStepId}
       />
     </div>
   );

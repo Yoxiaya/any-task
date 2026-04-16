@@ -161,7 +161,9 @@ export default function ScheduledTaskDetail({ selectedTask, tasks, onSave }: Sch
                         </div>
                         
                         {/* Submenu */}
-                        <div className="absolute left-full top-0 ml-1 w-64 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-2 hidden group-hover/sub:block max-h-64 overflow-y-auto custom-scrollbar">
+                        <div className="absolute left-full top-0 w-64 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-2 hidden group-hover/sub:block max-h-64 overflow-y-auto custom-scrollbar">
+                          {/* Bridge to prevent broken touch */}
+                          <div className="absolute -left-2 top-0 bottom-0 w-2 bg-transparent" />
                           {tasksByType[type].length > 0 ? (
                             tasksByType[type].map((task) => (
                               <button

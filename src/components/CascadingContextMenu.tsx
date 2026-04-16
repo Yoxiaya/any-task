@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, Globe, HardDrive } from 'lucide-react';
+import { ChevronRight, Globe, HardDrive, Plus, Trash2 } from 'lucide-react';
 import { Task } from '../types';
 
 interface CascadingContextMenuProps {
@@ -9,9 +9,22 @@ interface CascadingContextMenuProps {
   onClose: () => void;
   tasks: Task[];
   onSelectTask: (task: Task) => void;
+  onAddEmptyRow: () => void;
+  onDeleteRow?: () => void;
+  hasTarget?: boolean;
 }
 
-export default function CascadingContextMenu({ x, y, isOpen, onClose, tasks, onSelectTask }: CascadingContextMenuProps) {
+export default function CascadingContextMenu({ 
+  x, 
+  y, 
+  isOpen, 
+  onClose, 
+  tasks, 
+  onSelectTask,
+  onAddEmptyRow,
+  onDeleteRow,
+  hasTarget
+}: CascadingContextMenuProps) {
   if (!isOpen) return null;
 
   // Group tasks by type
@@ -35,6 +48,33 @@ export default function CascadingContextMenu({ x, y, isOpen, onClose, tasks, onS
             style={{ left: x, top: y }}
             className="fixed z-[70] w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-1 overflow-visible"
           >
+            {/* Level 1: Add Empty Row */}
+            <button
+              onClick={() => {
+                onAddEmptyRow();
+                onClose();
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer"
+            >
+              <Plus size={16} />
+              <span>增加一行</span>
+            </button>
+
+            {hasTarget && onDeleteRow && (
+              <button
+                onClick={() => {
+                  onDeleteRow();
+                  onClose();
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-error hover:bg-error/5 transition-colors cursor-pointer"
+              >
+                <Trash2 size={16} />
+                <span>删除此行</span>
+              </button>
+            )}
+
+            <div className="h-px bg-outline-variant/10 my-1" />
+
             {/* Level 1: Internal Tasks */}
             <div className="relative group/l1">
               <div className="flex items-center justify-between px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer">
@@ -46,7 +86,9 @@ export default function CascadingContextMenu({ x, y, isOpen, onClose, tasks, onS
               </div>
 
               {/* Level 2: Task Types */}
-              <div className="absolute left-full top-0 ml-0.5 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-1 hidden group-hover/l1:block">
+              <div className="absolute left-full top-0 -ml-px w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-1 hidden group-hover/l1:block">
+                {/* Bridge to prevent closing */}
+                <div className="absolute top-0 -left-2 w-2 h-full" />
                 {taskTypes.map((type) => (
                   <div key={type} className="relative group/l2">
                     <div className="flex items-center justify-between px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer border-b border-outline-variant/5 last:border-0">
@@ -55,7 +97,9 @@ export default function CascadingContextMenu({ x, y, isOpen, onClose, tasks, onS
                     </div>
 
                     {/* Level 3: Tasks of this type */}
-                    <div className="absolute left-full top-0 ml-0.5 w-56 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-1 hidden group-hover/l2:block max-h-64 overflow-y-auto custom-scrollbar">
+                    <div className="absolute left-full top-0 -ml-px w-56 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-1 hidden group-hover/l2:block max-h-64 overflow-y-auto custom-scrollbar">
+                      {/* Bridge to prevent closing */}
+                      <div className="absolute top-0 -left-2 w-2 h-full" />
                       {groupedTasks[type].map((task) => (
                         <button
                           key={task.id}

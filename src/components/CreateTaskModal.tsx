@@ -1,22 +1,57 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
+import { Task } from '../types';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (name: string) => void;
+  existingTasks: Task[];
 }
 
-export default function CreateTaskModal({ isOpen, onClose, onConfirm }: CreateTaskModalProps) {
+export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTasks }: CreateTaskModalProps) {
   const [taskName, setTaskName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Generate default name
+      let baseName = '流程任务';
+      let name = baseName;
+      let counter = 1;
+      
+      const existingNames = new Set(existingTasks.map(t => t.name));
+      
+      if (existingNames.has(name)) {
+        while (existingNames.has(`${baseName}_${counter}`)) {
+          counter++;
+        }
+        name = `${baseName}_${counter}`;
+      }
+      
+      setTaskName(name);
+      setError(null);
+    }
+  }, [isOpen, existingTasks]);
 
   const handleConfirm = () => {
-    if (taskName.trim()) {
-      onConfirm(taskName.trim());
-      setTaskName('');
-      onClose();
+    const trimmedName = taskName.trim();
+    if (!trimmedName) return;
+
+    if (existingTasks.some(t => t.name === trimmedName)) {
+      setError('任务名称已存在，请重新输入');
+      return;
     }
+
+    onConfirm(trimmedName);
+    setTaskName('');
+    onClose();
+  };
+
+  const handleNameChange = (name: string) => {
+    setTaskName(name);
+    if (error) setError(null);
   };
 
   return (
@@ -53,11 +88,28 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm }: CreateTa
                   autoFocus
                   type="text"
                   value={taskName}
-                  onChange={(e) => setTaskName(e.target.value)}
+                  onChange={(e) => handleNameChange(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
                   placeholder="请输入任务名称..."
-                  className="w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm font-medium"
+                  className={`w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-2 transition-all text-sm font-medium outline-none ${
+                    error 
+                      ? 'border-error/50 focus:ring-error/20 bg-error/5' 
+                      : 'border-transparent focus:ring-primary/20 focus:bg-surface-container-lowest focus:border-primary/30'
+                  }`}
                 />
+                <AnimatePresence>
+                  {error && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="flex items-center gap-1.5 text-error text-[11px] font-bold"
+                    >
+                      <AlertCircle size={12} />
+                      <span>{error}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4">
