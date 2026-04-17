@@ -1,23 +1,24 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, AlertCircle } from 'lucide-react';
-import { Task } from '../types';
+import { Task, TaskType } from '../types';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (name: string) => void;
   existingTasks: Task[];
+  taskType: TaskType;
 }
 
-export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTasks }: CreateTaskModalProps) {
+export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTasks, taskType }: CreateTaskModalProps) {
   const [taskName, setTaskName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       // Generate default name
-      let baseName = '流程任务';
+      let baseName = taskType === '流程' ? '流程任务' : taskType === '定时' ? '定时任务' : '普通任务';
       let name = baseName;
       let counter = 1;
       
@@ -33,7 +34,7 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
       setTaskName(name);
       setError(null);
     }
-  }, [isOpen, existingTasks]);
+  }, [isOpen, existingTasks, taskType]);
 
   const handleConfirm = () => {
     const trimmedName = taskName.trim();
@@ -72,7 +73,9 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
             className="relative w-full max-w-md bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden"
           >
             <div className="px-8 py-6 flex items-center justify-between border-b border-outline-variant/10">
-              <h2 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">新建流程任务</h2>
+              <h2 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">
+                新建{taskType === '流程' ? '流程' : taskType === '定时' ? '定时' : '普通'}任务
+              </h2>
               <button
                 onClick={onClose}
                 className="text-on-surface-variant hover:text-on-surface transition-colors p-1 rounded-full hover:bg-surface-container"

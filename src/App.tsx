@@ -267,35 +267,37 @@ export default function App() {
         </section>
 
         {/* Right Side: Dynamic Detail View */}
-        {selectedTask.type === '流程' ? (
-          <ProcessTaskDetail 
-            selectedTask={selectedTask}
-            steps={currentSteps}
-            notes={currentNotes}
-            onUpdateNotes={(value) => setTaskNotes(prev => ({ ...prev, [selectedTaskId]: value }))}
-            onEditStep={handleEditStep}
-            onContextMenu={handleContextMenu}
-            onReorderSteps={(newSteps) => {
-              setTaskSteps(prev => ({
-                ...prev,
-                [selectedTaskId]: newSteps
-              }));
-            }}
-            onDeleteStep={handleDeleteStep}
-            onUpdateStep={handleUpdateStep}
-            onJumpToTask={handleJumpToTask}
-          />
-        ) : selectedTask.type === '定时' ? (
-          <ScheduledTaskDetail 
-            selectedTask={selectedTask} 
-            tasks={tasks} 
-            onSave={(updatedTask) => {
-              setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
-            }}
-          />
-        ) : (
-          <TopLevelTaskDetail selectedTask={selectedTask} />
-        )}
+        <div key={selectedTaskId} className="flex-1 flex overflow-hidden">
+          {selectedTask.type === '流程' ? (
+            <ProcessTaskDetail 
+              selectedTask={selectedTask}
+              steps={currentSteps}
+              notes={currentNotes}
+              onUpdateNotes={(value) => setTaskNotes(prev => ({ ...prev, [selectedTaskId]: value }))}
+              onEditStep={handleEditStep}
+              onContextMenu={handleContextMenu}
+              onReorderSteps={(newSteps) => {
+                setTaskSteps(prev => ({
+                  ...prev,
+                  [selectedTaskId]: newSteps
+                }));
+              }}
+              onDeleteStep={handleDeleteStep}
+              onUpdateStep={handleUpdateStep}
+              onJumpToTask={handleJumpToTask}
+            />
+          ) : selectedTask.type === '定时' ? (
+            <ScheduledTaskDetail 
+              selectedTask={selectedTask} 
+              tasks={tasks} 
+              onSave={(updatedTask) => {
+                setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+              }}
+            />
+          ) : (
+            <TopLevelTaskDetail selectedTask={selectedTask} />
+          )}
+        </div>
       </main>
 
       <EditModal 
@@ -316,6 +318,7 @@ export default function App() {
         onClose={() => setIsCreateModalOpen(false)}
         onConfirm={handleCreateTask}
         existingTasks={tasks}
+        taskType={newTaskType}
       />
 
       <CreateStepModal 
