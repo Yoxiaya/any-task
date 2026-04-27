@@ -1,0 +1,71 @@
+{
+  "app": {
+    "title": "Task Manager"
+  },
+  "buttons": {
+    "add_task": "Add Task",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "edit": "Edit",
+    "delete": "Delete",
+    "import": "Import",
+    "export": "Export",
+    "new_task": "New Task",
+    "common_options": "Common Options"
+  },
+  "sidebar": {
+    "task_directory": "Task Directory",
+    "search_placeholder": "Quick Search...",
+    "id": "ID",
+    "task_name": "Task Name",
+    "type": "Type"
+  },
+  "task_type": {
+    "process": "Process",
+    "scheduled": "Scheduled",
+    "top_level": "Top Level"
+  },
+  "common": {
+    "search": "Search...",
+    "notes": "Notes",
+    "empty_steps": "No steps yet. Add one!",
+    "step_id": "Step ID",
+    "category": "Category",
+    "name": "Name",
+    "success_jump": "Success Jump",
+    "failure_jump": "Failure Jump",
+    "failure_tip": "Failure Tip",
+    "uncategorized": "Uncategorized",
+    "unnamed_step": "Unnamed Step",
+    "go_back": "Go Back",
+    "go_forward": "Go Forward",
+    "up_level": "Up Level",
+    "referenced_tasks": "Referencing Tasks"
+  },
+  "process": {
+    "task_notes": "Task Notes",
+    "auto_save_tip": "Auto saves on blur",
+    "notes_placeholder": "Enter task notes here...",
+    "edit_name": "Edit Name",
+    "save_data": "Save Data",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "drag_to_delete": "Drag step here to delete",
+    "release_to_delete": "Release object to delete",
+    "task_category_name": "Category / Name"
+  },
+  "modal": {
+    "create_task": "Create Task",
+    "task_name": "Task Name",
+    "task_name_placeholder": "Enter task name",
+    "name_exists": "Task name already exists, please try another",
+    "default_process_name": "Process Task",
+    "default_scheduled_name": "Scheduled Task",
+    "default_normal_name": "Normal Task",
+    "enter_to_confirm": "Press Enter to confirm",
+    "add_task_step": "Add Task Step",
+    "edit_task_step": "Edit Task Step",
+    "task_category": "Task Category"
+  }
+}

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MoreVertical, ChevronLeft, ChevronRight, GripVertical, Trash2, Edit3, Save, CheckCircle2 } from 'lucide-react';
 import { Task, TaskStep } from '../types';
 import { Reorder, motion, AnimatePresence } from 'motion/react';
@@ -16,6 +17,13 @@ interface ProcessTaskDetailProps {
   onJumpToTask: (taskName: string) => void;
 }
 
+const CATEGORY_MAP: Record<string, string> = {
+  '顶级': '顶级任务',
+  '流程': '流程任务',
+  '定时': '定时任务',
+  '-': '未分类'
+};
+
 export default function ProcessTaskDetail({
   selectedTask,
   steps,
@@ -29,16 +37,65 @@ export default function ProcessTaskDetail({
   onJumpToTask
 }: ProcessTaskDetailProps) {
   const deleteZoneRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLTableSectionElement>(null);
   const originalStepsRef = useRef<TaskStep[]>([]);
+  const isShiftPressed = useRef(false);
+  const draggingStepIdRef = useRef<string | null>(null);
+  const isShiftDragRef = useRef(false);
+  const targetIndexRef = useRef<number>(-1);
+  const [targetIndex, setTargetIndex] = useState<number>(-1);
+  const [previewSteps, setPreviewSteps] = useState<TaskStep[] | null>(null);
+  const [isShiftDrag, setIsShiftDrag] = useState(false);
   const [isOverDeleteZone, setIsOverDeleteZone] = useState(false);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
-  // Reset selection when task changes
+  const { t } = useTranslation();
+
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case '顶级': return t('task_type.top_level');
+      case '流程': return t('task_type.process');
+      case '定时': return t('task_type.scheduled');
+      case '-': return t('common.uncategorized');
+      default: return category;
+    }
+  };
+
+  const displaySteps = previewSteps || steps;
+
+  // Helper to re-map content to fixed slots (ID, successJump, failureJump, failureTip)
+  const applyFixedSlots = (newContentOrder: TaskStep[], baseSlots: TaskStep[]): TaskStep[] => {
+    return newContentOrder.map((content, idx) => ({
+      ...baseSlots[idx], // Keep ID, successJump, etc. from the physical slot
+      category: content.category,
+      name: content.name
+    }));
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') isShiftPressed.current = true;
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') isShiftPressed.current = false;
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  // Reset selection and preview when task changes
   useEffect(() => {
     setSelectedStepId(null);
     setIsEditingName(false);
+    setPreviewSteps(null);
+    setTargetIndex(-1);
+    setIsShiftDrag(false);
   }, [selectedTask.id]);
 
   useEffect(() => {
@@ -59,12 +116,50 @@ export default function ProcessTaskDetail({
     }, 600);
   };
 
-  const handleDragStart = () => {
+  const handleDragStart = (event: any, id: string, index: number) => {
     originalStepsRef.current = [...steps];
+    draggingStepIdRef.current = id;
+
+    let isShift = isShiftPressed.current;
+    if (event && 'shiftKey' in event) {
+      isShift = event.shiftKey;
+      isShiftPressed.current = isShift;
+    }
+
+    setIsShiftDrag(isShift);
+    isShiftDragRef.current = isShift;
+    
+    if (isShift) {
+      setTargetIndex(index);
+      targetIndexRef.current = index;
+      setPreviewSteps(null); // Keep items static visually during Shift-drag
+    } else {
+      setPreviewSteps([...steps]);
+      setTargetIndex(-1);
+      targetIndexRef.current = -1;
+    }
+  };
+
+  const handleReorder = (newSteps: TaskStep[]) => {
+    if (!isShiftDrag) {
+      setPreviewSteps(newSteps);
+    }
   };
 
   const handleDragEnd = (event: any, info: any, stepId: string) => {
     setIsOverDeleteZone(false);
+    const wasShift = isShiftDragRef.current;
+    const finalTargetIndex = targetIndexRef.current;
+    const currentPreviewSteps = previewSteps;
+    const originalSteps = originalStepsRef.current;
+    
+    draggingStepIdRef.current = null;
+    isShiftDragRef.current = false;
+    setPreviewSteps(null);
+    setTargetIndex(-1);
+    targetIndexRef.current = -1;
+    setIsShiftDrag(false);
+    
     if (!deleteZoneRef.current) return;
 
     const rect = deleteZoneRef.current.getBoundingClientRect();
@@ -84,53 +179,139 @@ export default function ProcessTaskDetail({
 
     // Handle Modifier Keys
     const isCtrl = event.ctrlKey || event.metaKey;
-    const isShift = event.shiftKey;
 
-    if (isCtrl || isShift) {
-      const originalSteps = originalStepsRef.current;
-      const newIndex = steps.findIndex(s => s.id === stepId);
+    if (wasShift) {
+      const oldIndex = originalSteps.findIndex(s => s.id === stepId);
+      const newIndex = finalTargetIndex;
+
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const finalSteps = [...originalSteps];
+        const stepOld = originalSteps[oldIndex];
+        const stepNew = originalSteps[newIndex];
+
+        // Core fix: Only swap identity fields (Category, Name)
+        // Keep slot fields (id, successJump, failureJump, failureTip) at their original physical indices
+        finalSteps[oldIndex] = {
+          ...stepOld,
+          category: stepNew.category,
+          name: stepNew.name
+        };
+        finalSteps[newIndex] = {
+          ...stepNew,
+          category: stepOld.category,
+          name: stepOld.name
+        };
+
+        onReorderSteps(finalSteps);
+        return;
+      }
+      return;
+    }
+
+    if (isCtrl) {
+      // Reordered list (entire items)
+      const reorderedItems = currentPreviewSteps || steps;
+      const newIndex = reorderedItems.findIndex(s => s.id === stepId);
       const oldIndex = originalSteps.findIndex(s => s.id === stepId);
 
       if (newIndex !== -1 && oldIndex !== -1) {
-        if (isCtrl) {
-          // Copy logic: Restore original list and insert a copy at the new position
-          const maxId = originalSteps.reduce((max, step) => {
-            const num = parseInt(step.id, 10);
-            return isNaN(num) ? max : Math.max(max, num);
-          }, 0);
-          const newId = (maxId + 1).toString().padStart(2, '0');
-          const copy = { ...originalSteps[oldIndex], id: newId };
-          
-          const finalSteps = [...originalSteps];
-          // Insert the copy at the drop position (newIndex)
-          finalSteps.splice(newIndex, 0, copy);
-          onReorderSteps(finalSteps);
-        } else if (isShift && newIndex !== oldIndex) {
-          // Swap logic: Swap the items at oldIndex and newIndex
-          const finalSteps = [...originalSteps];
-          const targetItem = originalSteps[newIndex];
-          finalSteps[newIndex] = originalSteps[oldIndex];
-          finalSteps[oldIndex] = targetItem;
-          onReorderSteps(finalSteps);
-        }
+        const maxId = originalSteps.reduce((max, step) => {
+          const num = parseInt(step.id, 10);
+          return isNaN(num) ? max : Math.max(max, num);
+        }, 0);
+        const newId = (maxId + 1).toString().padStart(2, '0');
+        const sourceData = originalSteps[oldIndex];
+        const copy = { ...sourceData, id: newId };
+        
+        // 1. First reorder the content of existing steps
+        const contentOrder = reorderedItems.map(item => ({ ...item }));
+        
+        // 2. Insert the copy into contentOrder
+        contentOrder.splice(newIndex, 0, copy);
+        
+        // 3. To maintain slots for standard reorder + copy:
+        // This is tricky because we added a new step.
+        // Usually copy adds a new row, so it gets a new slot.
+        // We just need to make sure existing rows keep their successJump etc at their OLD indices?
+        // Actually, if we add a row, it shifts slots below it.
+        // For simplicity with 'Slot Fixation', the most logical interpretation is:
+        // Reordering re-maps categories/names. Adding a step adds a new slot at the end? 
+        // Or shifts slots? User said '序号...不交换'. 
+        // If we insert a step at index 3, row 3 becomes index 4.
+        // Let's assume standard behavior for insert: the new item gets its own data.
+        
+        onReorderSteps(contentOrder); // For copy, we just move items since it's a structural change
+        return;
       }
+    }
+
+    // Standard reorder
+    if (currentPreviewSteps) {
+      // Apply Slot Fixation: Categories and Names move with reordering, 
+      // but ID, Jumps, and Tips stay assigned to the index.
+      const finalSteps = applyFixedSlots(currentPreviewSteps, originalSteps);
+      onReorderSteps(finalSteps);
     }
   };
 
   const handleDrag = (event: any, info: any) => {
-    if (!deleteZoneRef.current) return;
-    const rect = deleteZoneRef.current.getBoundingClientRect();
-    const { x, y } = info.point;
+    // 1. Check Shift state dynamically in case pressed during drag
+    let currentShift = isShiftPressed.current;
+    if (event && 'shiftKey' in event) {
+      currentShift = event.shiftKey;
+      isShiftPressed.current = currentShift;
+    }
     
-    const isInside = (
-      x >= rect.left &&
-      x <= rect.right &&
-      y >= rect.top &&
-      y <= rect.bottom
-    );
-    
-    if (isInside !== isOverDeleteZone) {
-      setIsOverDeleteZone(isInside);
+    // Handle shift state transitions during drag
+    if (currentShift !== isShiftDragRef.current) {
+      isShiftDragRef.current = currentShift;
+      setIsShiftDrag(currentShift);
+      if (currentShift) {
+        setPreviewSteps(null);
+      } else {
+        setPreviewSteps([...originalStepsRef.current]);
+      }
+    }
+
+    const clientX = event?.clientX ?? event?.touches?.[0]?.clientX ?? info.point.x;
+    const clientY = event?.clientY ?? event?.touches?.[0]?.clientY ?? (info.point.y - window.scrollY);
+
+    if (deleteZoneRef.current) {
+      const rect = deleteZoneRef.current.getBoundingClientRect();
+      const isInside = (
+        clientX >= rect.left &&
+        clientX <= rect.right &&
+        clientY >= rect.top &&
+        clientY <= rect.bottom
+      );
+      if (isInside !== isOverDeleteZone) {
+        setIsOverDeleteZone(isInside);
+      }
+    }
+
+    if (isShiftDragRef.current) {
+      // Use document.elementsFromPoint which handles overlap perfectly
+      const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
+      
+      for (const el of elementsAtPoint) {
+        const stepRow = el.closest('[data-step-id]');
+        if (stepRow) {
+          const id = stepRow.getAttribute('data-step-id');
+          if (id && id !== draggingStepIdRef.current) {
+            const foundIndex = parseInt(stepRow.getAttribute('data-target-index') || '-1', 10);
+            if (foundIndex !== -1) {
+              setTargetIndex((prev) => {
+                if (prev !== foundIndex) {
+                  targetIndexRef.current = foundIndex;
+                  return foundIndex;
+                }
+                return prev;
+              });
+            }
+            break; // Found the top-most target row
+          }
+        }
+      }
     }
   };
 
@@ -139,15 +320,15 @@ export default function ProcessTaskDetail({
       {/* Task Notes Area */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">任务备注</label>
+          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">{t('process.task_notes')}</label>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-outline-variant font-medium">失去焦点自动保存</span>
+            <span className="text-[10px] text-outline-variant font-medium">{t('process.auto_save_tip')}</span>
           </div>
         </div>
         <textarea 
           key={selectedTask.id}
           className="w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-xl border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm font-medium resize-none custom-scrollbar"
-          placeholder="在此输入任务备注..."
+          placeholder={t('process.notes_placeholder')}
           rows={3}
           defaultValue={notes}
           onBlur={(e) => onUpdateNotes(e.target.value)}
@@ -166,7 +347,7 @@ export default function ProcessTaskDetail({
           }`}
         >
           <Edit3 size={16} />
-          <span>修改名称</span>
+          <span>{t('process.edit_name')}</span>
         </button>
 
         <button
@@ -190,7 +371,7 @@ export default function ProcessTaskDetail({
           ) : (
             <Save size={16} />
           )}
-          <span>{saveStatus === 'saving' ? '正在保存...' : saveStatus === 'saved' ? '已保存' : '保存数据'}</span>
+          <span>{saveStatus === 'saving' ? t('process.saving') : saveStatus === 'saved' ? t('process.saved') : t('process.save_data')}</span>
         </button>
 
         {/* Delete Zone */}
@@ -204,7 +385,7 @@ export default function ProcessTaskDetail({
         >
           <Trash2 size={18} className={isOverDeleteZone ? 'animate-bounce' : ''} />
           <span className="text-xs font-bold tracking-wide">
-            {isOverDeleteZone ? '松开鼠标以删除' : '将步骤拖入此处删除'}
+            {isOverDeleteZone ? t('process.release_to_delete') : t('process.drag_to_delete')}
           </span>
         </div>
       </div>
@@ -218,33 +399,43 @@ export default function ProcessTaskDetail({
             <thead className="sticky top-0 z-10">
               <tr className="bg-surface-container-high border-b border-outline-variant/20">
                 <th className="px-4 py-4 w-10"></th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[8%]">序号</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[12%]">任务类</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[25%]">任务名</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[12%]">成功跳转</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[12%]">失败跳转</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[23%]">失败提示</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[8%]">{t('common.step_id')}</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[37%]">{t('process.task_category_name')}</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[12%]">{t('common.success_jump')}</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[12%]">{t('common.failure_jump')}</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[23%]">{t('common.failure_tip')}</th>
               </tr>
             </thead>
             <Reorder.Group 
+              ref={containerRef}
               as="tbody" 
               axis="y" 
-              values={steps} 
-              onReorder={onReorderSteps}
+              values={displaySteps} 
+              onReorder={handleReorder}
               className="divide-y divide-outline-variant/5"
             >
-              {steps.map((step) => {
+              {displaySteps.map((step, index) => {
                 const isSelected = selectedStepId === step.id;
-                const rowBgClass = isSelected 
-                  ? 'bg-blue-100/80!' 
-                  : 'group-hover:bg-primary/5 transition-colors';
+                const isTarget = isShiftDrag && index === targetIndex && step.id !== draggingStepIdRef.current;
+                
+                // Using explicit standard tailwind classes
+                let rowBgClass = 'transition-colors duration-200 ';
+                if (isSelected) {
+                  rowBgClass += '!bg-blue-100/80 ';
+                } else if (isTarget) {
+                  rowBgClass += '!bg-amber-100 !outline !outline-2 !outline-amber-400 !z-10 relative ';
+                } else {
+                  rowBgClass += 'group-hover:bg-primary/5 ';
+                }
 
                 return (
-                  <Reorder.Item 
+                   <Reorder.Item 
                     as="tr" 
                     key={step.id} 
                     value={step}
-                    onDragStart={handleDragStart}
+                    data-step-id={step.id}
+                    data-target-index={index}
+                    onDragStart={(e) => handleDragStart(e, step.id, index)}
                     onDragEnd={(e, info) => handleDragEnd(e, info, step.id)}
                     onDrag={handleDrag}
                     onClick={() => setSelectedStepId(step.id === selectedStepId ? null : step.id)}
@@ -253,77 +444,58 @@ export default function ProcessTaskDetail({
                       e.stopPropagation();
                       onContextMenu(e, step.id);
                     }}
-                    className={`shimmer-row group relative z-0 cursor-pointer ${isSelected ? 'z-10' : ''}`}
+                    className={`shimmer-row group relative z-0 cursor-pointer ${isSelected ? 'z-10' : ''} ${rowBgClass}`}
                   >
-                    <td className={`px-4 py-4 text-center ${rowBgClass}`}>
+                    <td className={`px-4 py-4 text-center`}>
                       <GripVertical size={18} className="text-outline-variant hover:text-primary cursor-grab active:cursor-grabbing transition-colors" />
                     </td>
-                    <td className={`px-6 py-4 text-sm font-medium text-on-surface-variant ${rowBgClass}`}>{step.id}</td>
-                    <td className={`px-6 py-4 ${rowBgClass}`}>
-                      <span className={`px-2 py-1 text-[10px] font-bold rounded ${
-                        step.category === 'INIT_SYSTEM' ? 'bg-blue-100 text-blue-700' :
-                        step.category === 'DB_CONN' ? 'bg-purple-100 text-purple-700' :
-                        step.category === 'CACHE_WARM' ? 'bg-amber-100 text-amber-700' :
-                        step.category === 'SEC_POL' ? 'bg-emerald-100 text-emerald-700' :
-                        'bg-surface-container-high text-on-surface-variant'
-                      }`}>
-                        {step.category}
-                      </span>
+                    <td className={`px-6 py-4 text-sm font-medium text-on-surface-variant`}>
+                      {(index + 1).toString().padStart(2, '0')}
                     </td>
-                    <td className={`px-6 py-4 text-sm font-semibold text-on-surface ${rowBgClass}`}>
-                      {isEditingName && isSelected ? (
-                        <input 
-                          autoFocus
-                          type="text"
-                          defaultValue={step.name}
-                          onClick={(e) => e.stopPropagation()}
-                          onBlur={(e) => {
-                            const newName = e.target.value;
-                            if (newName && newName !== step.name) {
-                              const maxId = steps.reduce((max, s) => {
-                                const num = parseInt(s.id, 10);
-                                return isNaN(num) ? max : Math.max(max, num);
-                              }, 0);
-                              const newId = (maxId + 1).toString().padStart(2, '0');
-                              const currentIndex = steps.findIndex(s => s.id === step.id);
-                              const newSteps = [...steps];
-                              newSteps.splice(currentIndex + 1, 0, {
-                                ...step,
-                                id: newId,
-                                name: newName
-                              });
-                              onReorderSteps(newSteps);
-                            }
-                            setIsEditingName(false);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              const newName = e.currentTarget.value;
-                              if (newName && newName !== step.name) {
-                                const maxId = steps.reduce((max, s) => {
-                                  const num = parseInt(s.id, 10);
-                                  return isNaN(num) ? max : Math.max(max, num);
-                                }, 0);
-                                const newId = (maxId + 1).toString().padStart(2, '0');
-                                const currentIndex = steps.findIndex(s => s.id === step.id);
-                                const newSteps = [...steps];
-                                newSteps.splice(currentIndex + 1, 0, {
-                                  ...step,
-                                  id: newId,
-                                  name: newName
-                                });
-                                onReorderSteps(newSteps);
-                              }
-                              setIsEditingName(false);
-                            }
-                          }}
-                          className="w-full bg-surface-container-lowest border-2 border-primary rounded-lg px-3 py-1.5 text-sm font-bold outline-none shadow-lg animate-in zoom-in-95 duration-200"
-                        />
-                      ) : (
-                        <span>{step.name || <span className="text-outline-variant font-normal italic">未命名步骤</span>}</span>
-                      )}
+                    <td className={`px-6 py-4`}>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {isEditingName && isSelected ? (
+                          <div className="flex items-center gap-1.5 w-full">
+                            <span className="text-sm font-semibold text-on-surface whitespace-nowrap shrink-0">
+                              {getCategoryLabel(step.category)} /
+                            </span>
+                            <input 
+                              autoFocus
+                              type="text"
+                              defaultValue={step.name}
+                              onClick={(e) => e.stopPropagation()}
+                              onBlur={(e) => {
+                                const newName = e.target.value;
+                                if (newName && newName !== step.name) {
+                                  // Simplified update logic to fulfill standard name change
+                                  onUpdateStep(step.id, { name: newName });
+                                }
+                                setIsEditingName(false);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  const newName = e.currentTarget.value;
+                                  if (newName && newName !== step.name) {
+                                    onUpdateStep(step.id, { name: newName });
+                                  }
+                                  setIsEditingName(false);
+                                }
+                              }}
+                              className="flex-1 bg-surface-container-lowest border-2 border-primary rounded-lg px-3 py-1.5 text-sm font-bold outline-none shadow-lg animate-in zoom-in-95 duration-200"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-sm font-semibold text-on-surface flex min-w-0">
+                            <span className="shrink-0">{getCategoryLabel(step.category)}</span>
+                            <span className="text-outline-variant font-normal">/</span>
+                            <span className="truncate">
+                              {step.name || <span className="text-outline-variant font-normal italic">{t('common.unnamed_step')}</span>}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </td>
-                    <td className={`px-6 py-4 ${rowBgClass}`}>
+                    <td className={`px-6 py-4`}>
                       <input 
                         type="text"
                         defaultValue={step.successJump}
@@ -332,7 +504,7 @@ export default function ProcessTaskDetail({
                         className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 rounded-lg px-3 py-1.5 text-sm text-tertiary font-medium outline-none transition-all shadow-sm"
                       />
                     </td>
-                    <td className={`px-6 py-4 ${rowBgClass}`}>
+                    <td className={`px-6 py-4`}>
                       <input 
                         type="text"
                         defaultValue={step.failureJump}
@@ -341,7 +513,7 @@ export default function ProcessTaskDetail({
                         className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-error/50 focus:ring-2 focus:ring-error/10 rounded-lg px-3 py-1.5 text-sm text-error font-medium outline-none transition-all shadow-sm"
                       />
                     </td>
-                    <td className={`px-6 py-4 ${rowBgClass}`}>
+                    <td className={`px-6 py-4`}>
                       <input 
                         type="text"
                         defaultValue={step.failureTip}

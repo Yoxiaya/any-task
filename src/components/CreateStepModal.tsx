@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronDown } from 'lucide-react';
 import { TaskStep } from '../types';
@@ -10,9 +11,20 @@ interface CreateStepModalProps {
 }
 
 export default function CreateStepModal({ isOpen, onClose, onConfirm }: CreateStepModalProps) {
+  const { t } = useTranslation();
+  
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case '顶级': return t('task_type.top_level');
+      case '流程': return t('task_type.process');
+      case '定时': return t('task_type.scheduled');
+      case '-': return t('common.uncategorized');
+      default: return category;
+    }
+  };
   const [formData, setFormData] = useState({
     name: '',
-    category: 'GENERAL',
+    category: '流程',
     successJump: '',
     failureJump: '',
     failureTip: '',
@@ -23,7 +35,7 @@ export default function CreateStepModal({ isOpen, onClose, onConfirm }: CreateSt
       onConfirm(formData);
       setFormData({
         name: '',
-        category: 'GENERAL',
+        category: '流程',
         successJump: '',
         failureJump: '',
         failureTip: '',
@@ -50,7 +62,7 @@ export default function CreateStepModal({ isOpen, onClose, onConfirm }: CreateSt
             className="relative w-full max-w-xl bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden"
           >
             <div className="px-8 py-6 flex items-center justify-between border-b border-outline-variant/10">
-              <h2 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">新增任务步骤</h2>
+              <h2 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">{t('modal.add_task_step')}</h2>
               <button
                 onClick={onClose}
                 className="text-on-surface-variant hover:text-on-surface transition-colors p-1 rounded-full hover:bg-surface-container"
@@ -62,65 +74,58 @@ export default function CreateStepModal({ isOpen, onClose, onConfirm }: CreateSt
             <div className="px-8 py-6 space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">任务名称</label>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">{t('common.name')}</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="请输入任务名称..."
+                    placeholder={t('modal.task_name_placeholder')}
                     className="w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm font-medium"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">任务类</label>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">{t('common.category')}</label>
                   <div className="relative group">
                     <select 
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       className="w-full appearance-none px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm font-medium pr-10"
                     >
-                      <option value="INIT_SYSTEM">INIT_SYSTEM</option>
-                      <option value="DB_CONN">DB_CONN</option>
-                      <option value="CACHE_WARM">CACHE_WARM</option>
-                      <option value="SEC_POL">SEC_POL</option>
-                      <option value="LB_SET">LB_SET</option>
-                      <option value="CDN_SYNC">CDN_SYNC</option>
-                      <option value="GENERAL">GENERAL</option>
+                      {['顶级', '流程', '定时', '-'].map((key) => (
+                        <option key={key} value={key}>{getCategoryLabel(key)}</option>
+                      ))}
                     </select>
                     <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">成功跳转</label>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">{t('common.success_jump')}</label>
                   <input
                     type="text"
                     value={formData.successJump}
                     onChange={(e) => setFormData({ ...formData, successJump: e.target.value })}
-                    placeholder="请输入成功跳转步骤..."
                     className="w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm font-medium"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">失败跳转</label>
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">{t('common.failure_jump')}</label>
                   <input
                     type="text"
                     value={formData.failureJump}
                     onChange={(e) => setFormData({ ...formData, failureJump: e.target.value })}
-                    placeholder="请输入失败跳转步骤..."
                     className="w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm font-medium"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">失败提示</label>
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">{t('common.failure_tip')}</label>
                 <textarea
                   value={formData.failureTip}
                   onChange={(e) => setFormData({ ...formData, failureTip: e.target.value })}
                   className="w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm font-medium resize-none"
                   rows={3}
-                  placeholder="请输入异常时的错误提示内容..."
                 />
               </div>
 
@@ -129,14 +134,14 @@ export default function CreateStepModal({ isOpen, onClose, onConfirm }: CreateSt
                   onClick={onClose}
                   className="px-6 py-2.5 text-sm font-bold text-secondary hover:bg-surface-container rounded-lg transition-colors"
                 >
-                  取消
+                  {t('buttons.cancel')}
                 </button>
                 <button
                   onClick={handleConfirm}
                   disabled={!formData.name.trim()}
                   className="px-8 py-2.5 text-sm font-bold text-on-primary bg-gradient-to-br from-primary to-primary-dim rounded-lg shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  确定
+                  {t('buttons.confirm')}
                 </button>
               </div>
             </div>

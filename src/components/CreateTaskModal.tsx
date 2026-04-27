@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, AlertCircle } from 'lucide-react';
 import { Task, TaskType } from '../types';
@@ -14,11 +15,12 @@ interface CreateTaskModalProps {
 export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTasks, taskType }: CreateTaskModalProps) {
   const [taskName, setTaskName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (isOpen) {
       // Generate default name
-      let baseName = taskType === '流程' ? '流程任务' : taskType === '定时' ? '定时任务' : '普通任务';
+      let baseName = taskType === '流程' ? t('modal.default_process_name') : taskType === '定时' ? t('modal.default_scheduled_name') : t('modal.default_normal_name');
       let name = baseName;
       let counter = 1;
       
@@ -34,14 +36,14 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
       setTaskName(name);
       setError(null);
     }
-  }, [isOpen, existingTasks, taskType]);
+  }, [isOpen, existingTasks, taskType, t]);
 
   const handleConfirm = () => {
     const trimmedName = taskName.trim();
     if (!trimmedName) return;
 
     if (existingTasks.some(t => t.name === trimmedName)) {
-      setError('任务名称已存在，请重新输入');
+      setError(t('modal.name_exists'));
       return;
     }
 
@@ -74,7 +76,7 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
           >
             <div className="px-8 py-6 flex items-center justify-between border-b border-outline-variant/10">
               <h2 className="text-xl font-extrabold font-headline text-on-surface tracking-tight">
-                新建{taskType === '流程' ? '流程' : taskType === '定时' ? '定时' : '普通'}任务
+                {t('modal.create_task')}
               </h2>
               <button
                 onClick={onClose}
@@ -86,14 +88,14 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
 
             <div className="px-8 py-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">任务名称</label>
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">{t('modal.task_name')}</label>
                 <input
                   autoFocus
                   type="text"
                   value={taskName}
                   onChange={(e) => handleNameChange(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
-                  placeholder="请输入任务名称..."
+                  placeholder={t('modal.task_name_placeholder')}
                   className={`w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-2 transition-all text-sm font-medium outline-none ${
                     error 
                       ? 'border-error/50 focus:ring-error/20 bg-error/5' 
@@ -120,14 +122,14 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
                   onClick={onClose}
                   className="px-6 py-2.5 text-sm font-bold text-secondary hover:bg-surface-container rounded-lg transition-colors"
                 >
-                  取消
+                  {t('buttons.cancel')}
                 </button>
                 <button
                   onClick={handleConfirm}
                   disabled={!taskName.trim()}
                   className="px-8 py-2.5 text-sm font-bold text-on-primary bg-gradient-to-br from-primary to-primary-dim rounded-lg shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  确定
+                  {t('buttons.confirm')}
                 </button>
               </div>
             </div>

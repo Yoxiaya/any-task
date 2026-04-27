@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Plus, 
   ChevronDown, 
@@ -17,6 +18,7 @@ interface AddTaskMenuProps {
 
 export default function AddTaskMenu({ onAddTask }: AddTaskMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { t } = useTranslation();
 
   const handleSelect = (type: TaskType) => {
     onAddTask(type);
@@ -30,7 +32,7 @@ export default function AddTaskMenu({ onAddTask }: AddTaskMenuProps) {
         className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-dim transition-colors"
       >
         <Plus size={18} />
-        <span>新建任务</span>
+        <span>{t('buttons.new_task')}</span>
         <ChevronDown size={14} />
       </button>
       
@@ -50,14 +52,14 @@ export default function AddTaskMenu({ onAddTask }: AddTaskMenuProps) {
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors"
                 >
                   <LayoutTemplate size={18} />
-                  <span>流程任务</span>
+                  <span>{t('modal.default_process_name')}</span>
                 </button>
 
                 <div className="relative group/sub">
                   <div className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer border-t border-outline-variant/10">
                     <div className="flex items-center gap-3">
                       <Layers size={18} />
-                      <span>通用选项</span>
+                      <span>{t('buttons.common_options')}</span>
                     </div>
                     <ChevronRight size={14} />
                   </div>
@@ -71,14 +73,14 @@ export default function AddTaskMenu({ onAddTask }: AddTaskMenuProps) {
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors"
                     >
                       <Clock size={18} />
-                      <span>定时任务</span>
+                      <span>{t('modal.default_scheduled_name')}</span>
                     </button>
                     <button 
                       onClick={() => handleSelect('顶级')}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors border-t border-outline-variant/10"
                     >
                       <CheckSquare size={18} />
-                      <span>普通任务</span>
+                      <span>{t('modal.default_normal_name')}</span>
                     </button>
                   </div>
                 </div>
