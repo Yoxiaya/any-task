@@ -1,8 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MoreVertical, ChevronLeft, ChevronRight, GripVertical, Trash2, Edit3, Save, CheckCircle2 } from 'lucide-react';
+import { GripVertical, Trash2, Edit3, Save, CheckCircle2 } from 'lucide-react';
 import { Task, TaskStep } from '../types';
-import { Reorder, motion, AnimatePresence } from 'motion/react';
+import { Reorder, motion } from 'motion/react';
+import { getCategoryLabel } from '../utils';
 
 interface ProcessTaskDetailProps {
   selectedTask: Task;
@@ -16,13 +17,6 @@ interface ProcessTaskDetailProps {
   onUpdateStep: (stepId: string, updates: Partial<TaskStep>) => void;
   onJumpToTask: (taskName: string) => void;
 }
-
-const CATEGORY_MAP: Record<string, string> = {
-  '顶级': '顶级任务',
-  '流程': '流程任务',
-  '定时': '定时任务',
-  '-': '未分类'
-};
 
 export default function ProcessTaskDetail({
   selectedTask,
@@ -52,16 +46,6 @@ export default function ProcessTaskDetail({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   const { t } = useTranslation();
-
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case '顶级': return t('task_type.top_level');
-      case '流程': return t('task_type.process');
-      case '定时': return t('task_type.scheduled');
-      case '-': return t('common.uncategorized');
-      default: return category;
-    }
-  };
 
   const displaySteps = previewSteps || steps;
 
@@ -457,7 +441,7 @@ export default function ProcessTaskDetail({
                         {isEditingName && isSelected ? (
                           <div className="flex items-center gap-1.5 w-full">
                             <span className="text-sm font-semibold text-on-surface whitespace-nowrap shrink-0">
-                              {getCategoryLabel(step.category)} /
+                              {getCategoryLabel(step.category, t)} /
                             </span>
                             <input 
                               autoFocus
@@ -486,7 +470,7 @@ export default function ProcessTaskDetail({
                           </div>
                         ) : (
                           <div className="flex items-center gap-1.5 text-sm font-semibold text-on-surface flex min-w-0">
-                            <span className="shrink-0">{getCategoryLabel(step.category)}</span>
+                            <span className="shrink-0">{getCategoryLabel(step.category, t)}</span>
                             <span className="text-outline-variant font-normal">/</span>
                             <span className="truncate">
                               {step.name || <span className="text-outline-variant font-normal italic">{t('common.unnamed_step')}</span>}

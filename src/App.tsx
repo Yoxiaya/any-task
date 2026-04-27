@@ -3,29 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Plus, 
   FileUp, 
   FileDown, 
   Search, 
   Filter, 
-  GripVertical, 
-  MoreVertical, 
   ChevronLeft, 
   ChevronRight,
   ChevronDown,
   ListTodo,
-  CheckSquare,
-  Clock,
-  Layers,
-  LayoutTemplate,
   Globe,
   ArrowUp
 } from 'lucide-react';
-import { motion, AnimatePresence, Reorder } from 'motion/react';
-import { MOCK_TASKS, MOCK_STEPS } from './constants';
+import { MOCK_TASKS } from './constants';
 import { TaskType, Task, TaskStep } from './types';
 import EditModal from './components/EditModal';
 import CreateTaskModal from './components/CreateTaskModal';
@@ -35,14 +27,32 @@ import ProcessTaskDetail from './components/ProcessTaskDetail';
 import TopLevelTaskDetail from './components/TopLevelTaskDetail';
 import ScheduledTaskDetail from './components/ScheduledTaskDetail';
 import AddTaskMenu from './components/AddTaskMenu';
+import { useTaskManagement } from './hooks/useTaskManagement';
 
 export default function App() {
   const { t, i18n } = useTranslation();
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
-  const [taskSteps, setTaskSteps] = useState<Record<string, TaskStep[]>>({});
-  const [selectedTaskId, setSelectedTaskId] = useState('P-1001');
-  const [history, setHistory] = useState<string[]>(['P-1001']);
-  const [historyIndex, setHistoryIndex] = useState(0);
+  
+  const {
+    tasks,
+    selectedTaskId,
+    selectedTask,
+    currentSteps,
+    historyIndex,
+    history,
+    referencingTasks,
+    navigateToTask,
+    handleGoBack,
+    handleGoForward,
+    handleCreateTask,
+    handleCreateStep,
+    handleDeleteStep,
+    handleUpdateStep,
+    handleReorderSteps,
+    handleAddEmptyRow,
+    handleAddTaskFromMenu,
+    updateTask,
+  } = useTaskManagement(MOCK_TASKS, {});
+
   const [editingStep, setEditingStep] = useState<TaskStep | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -59,137 +69,9 @@ export default function App() {
     isOpen: false,
   });
 
-  const selectedTask = tasks.find(t => t.id === selectedTaskId) || tasks[0];
-  const currentSteps = taskSteps[selectedTaskId] || [];
-
-  const referencingTasks = tasks.filter(t => {
-    const steps = taskSteps[t.id] || [];
-    return steps.some(step => step.name === selectedTask.name);
-  });
-
-  const navigateToTask = (taskId: string) => {
-    if (taskId === history[historyIndex]) return;
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(taskId);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-    setSelectedTaskId(taskId);
-    setIsUpLevelOpen(false);
-  };
-
-  const handleGoBack = () => {
-    if (historyIndex > 0) {
-      const prev = historyIndex - 1;
-      setHistoryIndex(prev);
-      setSelectedTaskId(history[prev]);
-      setIsUpLevelOpen(false);
-    }
-  };
-
-  const handleGoForward = () => {
-    if (historyIndex < history.length - 1) {
-      const next = historyIndex + 1;
-      setHistoryIndex(next);
-      setSelectedTaskId(history[next]);
-      setIsUpLevelOpen(false);
-    }
-  };
-
   const handleEditStep = (step: TaskStep) => {
     setEditingStep(step);
     setIsModalOpen(true);
-  };
-
-  const handleCreateTask = (name: string) => {
-    const prefix = newTaskType === '流程' ? 'P' : newTaskType === '定时' ? 'S' : 'T';
-    const newId = `${prefix}-${2000 + tasks.length + 1}`;
-    const newTask: Task = {
-      id: newId,
-      name,
-      type: newTaskType,
-    };
-    setTasks([newTask, ...tasks]);
-    navigateToTask(newId);
-  };
-
-  const handleCreateStep = (newStepData: Omit<TaskStep, 'id'>) => {
-    const currentTaskSteps = taskSteps[selectedTaskId] || [];
-    const maxId = currentTaskSteps.reduce((max, step) => {
-      const num = parseInt(step.id, 10);
-      return isNaN(num) ? max : Math.max(max, num);
-    }, 0);
-    const newId = (maxId + 1).toString().padStart(2, '0');
-    const newStep: TaskStep = {
-      id: newId,
-      ...newStepData,
-    };
-    setTaskSteps(prev => ({
-      ...prev,
-      [selectedTaskId]: [...currentTaskSteps, newStep]
-    }));
-  };
-
-  const handleAddTaskFromMenu = (task: Task) => {
-    const currentTaskSteps = taskSteps[selectedTaskId] || [];
-    
-    if (contextMenu.targetStepId) {
-      // Replace logic
-      setTaskSteps(prev => ({
-        ...prev,
-        [selectedTaskId]: (prev[selectedTaskId] || []).map(s => 
-          s.id === contextMenu.targetStepId 
-            ? { 
-                ...s, 
-                category: task.type,
-                name: task.name,
-                successJump: '',
-                failureJump: '',
-                failureTip: '',
-              } 
-            : s
-        )
-      }));
-    } else {
-      // Add logic
-      const maxId = currentTaskSteps.reduce((max, step) => {
-        const num = parseInt(step.id, 10);
-        return isNaN(num) ? max : Math.max(max, num);
-      }, 0);
-      const newId = (maxId + 1).toString().padStart(2, '0');
-      const newStep: TaskStep = {
-        id: newId,
-        category: task.type,
-        name: task.name,
-        successJump: '',
-        failureJump: '',
-        failureTip: '',
-      };
-      setTaskSteps(prev => ({
-        ...prev,
-        [selectedTaskId]: [...currentTaskSteps, newStep]
-      }));
-    }
-  };
-
-  const handleAddEmptyRow = () => {
-    const currentTaskSteps = taskSteps[selectedTaskId] || [];
-    const maxId = currentTaskSteps.reduce((max, step) => {
-      const num = parseInt(step.id, 10);
-      return isNaN(num) ? max : Math.max(max, num);
-    }, 0);
-    const newId = (maxId + 1).toString().padStart(2, '0');
-    const newStep: TaskStep = {
-      id: newId,
-      category: '-',
-      name: '',
-      successJump: '',
-      failureJump: '',
-      failureTip: '',
-    };
-    setTaskSteps(prev => ({
-      ...prev,
-      [selectedTaskId]: [...currentTaskSteps, newStep]
-    }));
   };
 
   const handleContextMenu = (e: React.MouseEvent, stepId?: string) => {
@@ -202,49 +84,6 @@ export default function App() {
     });
   };
 
-  const handleDeleteStep = (stepId: string) => {
-    setTaskSteps(prev => ({
-      ...prev,
-      [selectedTaskId]: (prev[selectedTaskId] || []).filter(s => s.id !== stepId)
-    }));
-  };
-
-  const handleUpdateStep = (taskId: string, stepId: string, updates: Partial<TaskStep>) => {
-    if (updates.name && updates.name.trim() !== '') {
-      setTasks(prevTasks => {
-        const taskExists = prevTasks.some(t => t.name === updates.name);
-        if (!taskExists) {
-          const step = (taskSteps[taskId] || []).find(s => s.id === stepId);
-          const category = updates.category || (step?.category ?? '-');
-          let newTaskType: TaskType = '流程';
-          if (category === '顶级' || category === '流程' || category === '定时') {
-            newTaskType = category as TaskType;
-          }
-          
-          const prefix = newTaskType === '流程' ? 'P' : newTaskType === '定时' ? 'S' : 'T';
-          const maxIdNum = prevTasks.reduce((max, t) => {
-            const num = parseInt(t.id.split('-')[1], 10);
-            return isNaN(num) ? max : Math.max(max, num);
-          }, 2000);
-          const newId = `${prefix}-${maxIdNum + 1}`;
-          
-          const newTask: Task = {
-            id: newId,
-            name: updates.name as string,
-            type: newTaskType,
-          };
-          return [newTask, ...prevTasks];
-        }
-        return prevTasks;
-      });
-    }
-
-    setTaskSteps(prev => ({
-      ...prev,
-      [taskId]: (prev[taskId] || []).map(s => s.id === stepId ? { ...s, ...updates } : s)
-    }));
-  };
-
   const handleJumpToTask = (taskName: string) => {
     const targetTask = tasks.find(t => t.name === taskName);
     if (targetTask) {
@@ -252,7 +91,7 @@ export default function App() {
     }
   };
 
-  const currentNotes = taskNotes[selectedTaskId] || '';
+  const currentNotes = selectedTaskId ? (taskNotes[selectedTaskId] || '') : '';
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -451,13 +290,8 @@ export default function App() {
               onUpdateNotes={(value) => setTaskNotes(prev => ({ ...prev, [selectedTaskId]: value }))}
               onEditStep={handleEditStep}
               onContextMenu={handleContextMenu}
-              onReorderSteps={(newSteps) => {
-                setTaskSteps(prev => ({
-                  ...prev,
-                  [selectedTaskId]: newSteps
-                }));
-              }}
-              onDeleteStep={handleDeleteStep}
+              onReorderSteps={(newSteps) => handleReorderSteps(selectedTaskId, newSteps)}
+              onDeleteStep={(stepId) => handleDeleteStep(selectedTaskId, stepId)}
               onUpdateStep={(stepId, updates) => handleUpdateStep(selectedTaskId, stepId, updates)}
               onJumpToTask={handleJumpToTask}
             />
@@ -465,9 +299,7 @@ export default function App() {
             <ScheduledTaskDetail 
               selectedTask={selectedTask} 
               tasks={tasks} 
-              onSave={(updatedTask) => {
-                setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
-              }}
+              onSave={updateTask}
             />
           ) : (
             <TopLevelTaskDetail selectedTask={selectedTask} />
@@ -488,7 +320,7 @@ export default function App() {
       <CreateTaskModal 
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onConfirm={handleCreateTask}
+        onConfirm={(name) => handleCreateTask(name, newTaskType)}
         existingTasks={tasks}
         taskType={newTaskType}
       />
@@ -496,7 +328,7 @@ export default function App() {
       <CreateStepModal 
         isOpen={isCreateStepModalOpen}
         onClose={() => setIsCreateStepModalOpen(false)}
-        onConfirm={handleCreateStep}
+        onConfirm={(step) => handleCreateStep(selectedTaskId, step)}
       />
 
       <CascadingContextMenu 
@@ -505,11 +337,11 @@ export default function App() {
         isOpen={contextMenu.isOpen}
         onClose={() => setContextMenu({ ...contextMenu, isOpen: false })}
         tasks={tasks}
-        onSelectTask={handleAddTaskFromMenu}
-        onAddEmptyRow={handleAddEmptyRow}
+        onSelectTask={(task) => handleAddTaskFromMenu(selectedTaskId, task, contextMenu.targetStepId)}
+        onAddEmptyRow={() => handleAddEmptyRow(selectedTaskId)}
         onDeleteRow={() => {
           if (contextMenu.targetStepId) {
-            handleDeleteStep(contextMenu.targetStepId);
+            handleDeleteStep(selectedTaskId, contextMenu.targetStepId);
           }
         }}
         hasTarget={!!contextMenu.targetStepId}
