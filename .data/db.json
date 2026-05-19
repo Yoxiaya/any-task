@@ -1,0 +1,76 @@
+{
+  "tasks": [
+    {
+      "id": "P-2003",
+      "name": "流程任务_2",
+      "type": "流程"
+    },
+    {
+      "id": "P-2002",
+      "name": "流程任务_1",
+      "type": "流程"
+    },
+    {
+      "id": "P-2001",
+      "name": "流程任务",
+      "type": "流程"
+    },
+    {
+      "id": "T-1001",
+      "name": "顶级任务",
+      "type": "流程"
+    }
+  ],
+  "steps": {
+    "T-1001": [
+      {
+        "id": "01",
+        "category": "流程",
+        "name": "流程任务",
+        "successJump": "1",
+        "failureJump": "6",
+        "failureTip": "6",
+        "_uid": "6hq8m03bk"
+      },
+      {
+        "id": "02",
+        "category": "流程",
+        "name": "流程任务_1",
+        "successJump": "2",
+        "failureJump": "5",
+        "failureTip": "6",
+        "_uid": "io89fbow0"
+      },
+      {
+        "id": "03",
+        "category": "流程",
+        "name": "流程任务_2",
+        "successJump": "3",
+        "failureJump": "4",
+        "failureTip": "66666",
+        "_uid": "luy4gd5af"
+      }
+    ],
+    "P-2002": [
+      {
+        "id": "01",
+        "category": "流程",
+        "name": "流程任务_2",
+        "successJump": "",
+        "failureJump": "",
+        "failureTip": "",
+        "_uid": "p8f4mjg7m"
+      },
+      {
+        "id": "02",
+        "category": "流程",
+        "name": "流程任务_1",
+        "successJump": "",
+        "failureJump": "",
+        "failureTip": "",
+        "_uid": "oubf7micc"
+      }
+    ]
+  },
+  "notes": {}
+}

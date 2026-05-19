@@ -10,7 +10,7 @@ async function startServer() {
   app.use(express.json());
 
   // Database path
-  const dbPath = path.join(process.cwd(), 'data', 'db.json');
+  const dbPath = path.join(process.cwd(), '.data', 'db.json');
 
   // Helper to read DB
   const readDb = () => {
