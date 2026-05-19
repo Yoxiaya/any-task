@@ -1,20 +1,26 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { Task, TaskStep, TaskType } from '../types';
 import { generateNextTaskId, generateNextStepId } from '../utils';
+import { useTaskStore } from '../store/taskStore';
 
-export function useTaskManagement(initialTasks: Task[], initialSteps: Record<string, TaskStep[]>) {
-  // Ensure uids
-  const initializedSteps = Object.fromEntries(
-    Object.entries(initialSteps).map(([k, v]) => [
-      k, v.map(s => ({ ...s, _uid: s._uid || Math.random().toString(36).substr(2, 9) }))
-    ])
-  );
-  
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [taskSteps, setTaskSteps] = useState<Record<string, TaskStep[]>>(initializedSteps);
-  const [selectedTaskId, setSelectedTaskId] = useState(initialTasks[0]?.id || '');
-  const [history, setHistory] = useState<string[]>([initialTasks[0]?.id || '']);
-  const [historyIndex, setHistoryIndex] = useState(0);
+export function useTaskManagement() {
+  const {
+    tasks,
+    taskSteps,
+    selectedTaskId,
+    history,
+    historyIndex,
+    fetchTasks,
+    setTasks,
+    setTaskSteps,
+    navigateToTask: storeNavigateToTask,
+    handleGoBack: storeHandleGoBack,
+    handleGoForward: storeHandleGoForward,
+  } = useTaskStore();
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
   const selectedTask = tasks.find(t => t.id === selectedTaskId) || tasks[0];
   const currentSteps = selectedTaskId ? (taskSteps[selectedTaskId] || []) : [];
@@ -24,30 +30,9 @@ export function useTaskManagement(initialTasks: Task[], initialSteps: Record<str
     return steps.some(step => step.name === selectedTask?.name);
   });
 
-  const navigateToTask = (taskId: string) => {
-    if (!taskId || taskId === history[historyIndex]) return;
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(taskId);
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-    setSelectedTaskId(taskId);
-  };
-
-  const handleGoBack = () => {
-    if (historyIndex > 0) {
-      const prev = historyIndex - 1;
-      setHistoryIndex(prev);
-      setSelectedTaskId(history[prev]);
-    }
-  };
-
-  const handleGoForward = () => {
-    if (historyIndex < history.length - 1) {
-      const next = historyIndex + 1;
-      setHistoryIndex(next);
-      setSelectedTaskId(history[next]);
-    }
-  };
+  const navigateToTask = storeNavigateToTask;
+  const handleGoBack = storeHandleGoBack;
+  const handleGoForward = storeHandleGoForward;
 
   const handleCreateTask = (name: string, type: TaskType) => {
     const newId = generateNextTaskId(tasks, type);
@@ -60,47 +45,42 @@ export function useTaskManagement(initialTasks: Task[], initialSteps: Record<str
     const currentTaskSteps = taskSteps[taskId] || [];
     const newId = generateNextStepId(currentTaskSteps);
     const newStep: TaskStep = { id: newId, ...newStepData, _uid: Math.random().toString(36).substr(2, 9) };
-    setTaskSteps(prev => ({ ...prev, [taskId]: [...currentTaskSteps, newStep] }));
+    setTaskSteps(taskId, [...currentTaskSteps, newStep]);
   };
 
   const handleDeleteStep = (taskId: string, stepId: string) => {
-    setTaskSteps(prev => ({
-      ...prev,
-      [taskId]: (prev[taskId] || []).filter(s => s.id !== stepId)
-    }));
+    const currentStepsForTask = taskSteps[taskId] || [];
+    setTaskSteps(taskId, currentStepsForTask.filter(s => s.id !== stepId));
   };
 
   const handleUpdateStep = (taskId: string, stepId: string, updates: Partial<TaskStep>) => {
     let tasksUpdated = false;
+    let newTasks = [...tasks];
     if (updates.name && updates.name.trim() !== '') {
-      setTasks(prevTasks => {
-        const taskExists = prevTasks.some(t => t.name === updates.name);
-        if (!taskExists) {
-          const step = (taskSteps[taskId] || []).find(s => s.id === stepId);
-          const category = updates.category || (step?.category ?? '-');
-          let newTaskType: TaskType = '流程';
-          if (category === '顶级' || category === '流程' || category === '定时') {
-            newTaskType = category as TaskType;
-          }
-          const newId = generateNextTaskId(prevTasks, newTaskType);
-          const newTask: Task = { id: newId, name: updates.name as string, type: newTaskType };
-          tasksUpdated = true;
-          return [newTask, ...prevTasks];
+      const taskExists = newTasks.some(t => t.name === updates.name);
+      if (!taskExists) {
+        const step = (taskSteps[taskId] || []).find(s => s.id === stepId);
+        const category = updates.category || (step?.category ?? '-');
+        let newTaskType: TaskType = '流程';
+        if (category === '顶级' || category === '流程' || category === '定时') {
+          newTaskType = category as TaskType;
         }
-        return prevTasks;
-      });
+        const newId = generateNextTaskId(newTasks, newTaskType);
+        const newTask: Task = { id: newId, name: updates.name as string, type: newTaskType };
+        tasksUpdated = true;
+        newTasks = [newTask, ...newTasks];
+        setTasks(newTasks);
+      }
     }
 
-    setTaskSteps(prev => ({
-      ...prev,
-      [taskId]: (prev[taskId] || []).map(s => s.id === stepId ? { ...s, ...updates } : s)
-    }));
+    const currentStepsForTask = taskSteps[taskId] || [];
+    setTaskSteps(taskId, currentStepsForTask.map(s => s.id === stepId ? { ...s, ...updates } : s));
     
     return tasksUpdated;
   };
 
   const handleReorderSteps = (taskId: string, newSteps: TaskStep[]) => {
-    setTaskSteps(prev => ({ ...prev, [taskId]: newSteps }));
+    setTaskSteps(taskId, newSteps);
   };
 
   const handleAddEmptyRow = (taskId: string) => {
@@ -110,32 +90,29 @@ export function useTaskManagement(initialTasks: Task[], initialSteps: Record<str
       id: newId, category: '-', name: '', successJump: '', failureJump: '', failureTip: '',
       _uid: Math.random().toString(36).substr(2, 9)
     };
-    setTaskSteps(prev => ({ ...prev, [taskId]: [...currentTaskSteps, newStep] }));
+    setTaskSteps(taskId, [...currentTaskSteps, newStep]);
   };
 
   const handleAddTaskFromMenu = (taskId: string, task: Task, targetStepId?: string) => {
     const currentTaskSteps = taskSteps[taskId] || [];
     if (targetStepId) {
-      setTaskSteps(prev => ({
-        ...prev,
-        [taskId]: (prev[taskId] || []).map(s => 
-          s.id === targetStepId 
-            ? { ...s, category: task.type, name: task.name, successJump: '', failureJump: '', failureTip: '' } 
-            : s
-        )
-      }));
+      setTaskSteps(taskId, currentTaskSteps.map(s => 
+        s.id === targetStepId 
+          ? { ...s, category: task.type, name: task.name, successJump: '', failureJump: '', failureTip: '' } 
+          : s
+      ));
     } else {
       const newId = generateNextStepId(currentTaskSteps);
       const newStep: TaskStep = {
         id: newId, category: task.type, name: task.name, successJump: '', failureJump: '', failureTip: '',
         _uid: Math.random().toString(36).substr(2, 9)
       };
-      setTaskSteps(prev => ({ ...prev, [taskId]: [...currentTaskSteps, newStep] }));
+      setTaskSteps(taskId, [...currentTaskSteps, newStep]);
     }
   };
 
   const updateTask = (updatedTask: Task) => {
-    setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
   };
 
   return {

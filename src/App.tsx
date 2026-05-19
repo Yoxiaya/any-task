@@ -17,7 +17,6 @@ import {
   Globe,
   ArrowUp
 } from 'lucide-react';
-import { MOCK_TASKS } from './constants';
 import { TaskType, Task, TaskStep } from './types';
 import EditModal from './components/EditModal';
 import CreateTaskModal from './components/CreateTaskModal';
@@ -28,6 +27,7 @@ import TopLevelTaskDetail from './components/TopLevelTaskDetail';
 import ScheduledTaskDetail from './components/ScheduledTaskDetail';
 import AddTaskMenu from './components/AddTaskMenu';
 import { useTaskManagement } from './hooks/useTaskManagement';
+import { useTaskStore } from './store/taskStore';
 
 export default function App() {
   const { t, i18n } = useTranslation();
@@ -52,14 +52,14 @@ export default function App() {
     handleAddEmptyRow,
     handleAddTaskFromMenu,
     updateTask,
-  } = useTaskManagement(MOCK_TASKS, {});
+  } = useTaskManagement();
 
   const [editingStep, setEditingStep] = useState<TaskStep | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateStepModalOpen, setIsCreateStepModalOpen] = useState(false);
   const [newTaskType, setNewTaskType] = useState<TaskType>('流程');
-  const [taskNotes, setTaskNotes] = useState<Record<string, string>>({});
+  const { taskNotes, setTaskNote } = useTaskStore();
   const [searchQuery, setSearchQuery] = useState('');
   
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
@@ -170,11 +170,7 @@ export default function App() {
           <button 
             className="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-semibold border border-outline-variant/20 hover:bg-surface-container-highest transition-colors"
             onClick={() => {
-              const exportData = sortedTasks.map(task => ({
-                ...task,
-                steps: taskSteps[task.id] || []
-              }));
-              console.log('Export Tasks:', exportData);
+              useTaskStore.getState().exportTasks();
             }}
           >
             <FileDown size={18} />
@@ -300,27 +296,33 @@ export default function App() {
 
         {/* Right Side: Dynamic Detail View */}
         <div key={selectedTaskId} className="flex-1 flex overflow-hidden">
-          {selectedTask.type === '流程' ? (
-            <ProcessTaskDetail 
-              selectedTask={selectedTask}
-              steps={currentSteps}
-              notes={currentNotes}
-              onUpdateNotes={(value) => setTaskNotes(prev => ({ ...prev, [selectedTaskId]: value }))}
-              onEditStep={handleEditStep}
-              onContextMenu={handleContextMenu}
-              onReorderSteps={(newSteps) => handleReorderSteps(selectedTaskId, newSteps)}
-              onDeleteStep={(stepId) => handleDeleteStep(selectedTaskId, stepId)}
-              onUpdateStep={(stepId, updates) => handleUpdateStep(selectedTaskId, stepId, updates)}
-              onJumpToTask={handleJumpToTask}
-            />
-          ) : selectedTask.type === '定时' ? (
-            <ScheduledTaskDetail 
-              selectedTask={selectedTask} 
-              tasks={tasks} 
-              onSave={updateTask}
-            />
+          {selectedTask ? (
+            selectedTask.type === '流程' ? (
+              <ProcessTaskDetail 
+                selectedTask={selectedTask}
+                steps={currentSteps}
+                notes={currentNotes}
+                onUpdateNotes={(value) => setTaskNote(selectedTaskId, value)}
+                onEditStep={handleEditStep}
+                onContextMenu={handleContextMenu}
+                onReorderSteps={(newSteps) => handleReorderSteps(selectedTaskId, newSteps)}
+                onDeleteStep={(stepId) => handleDeleteStep(selectedTaskId, stepId)}
+                onUpdateStep={(stepId, updates) => handleUpdateStep(selectedTaskId, stepId, updates)}
+                onJumpToTask={handleJumpToTask}
+              />
+            ) : selectedTask.type === '定时' ? (
+              <ScheduledTaskDetail 
+                selectedTask={selectedTask} 
+                tasks={tasks} 
+                onSave={updateTask}
+              />
+            ) : (
+              <TopLevelTaskDetail selectedTask={selectedTask} />
+            )
           ) : (
-            <TopLevelTaskDetail selectedTask={selectedTask} />
+            <div className="flex-1 flex items-center justify-center p-8 text-on-surface-variant/50">
+              {tasks.length === 0 ? 'Loading tasks...' : 'No task selected'}
+            </div>
           )}
         </div>
       </main>
