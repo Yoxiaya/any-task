@@ -49,6 +49,24 @@ export default function ProcessTaskDetail({
 
   const displaySteps = previewSteps || steps;
 
+  const activeRowIndex = selectedStepId ? displaySteps.findIndex(s => s.id === selectedStepId) : -1;
+
+  const handleRowClick = (index: number) => {
+    // If clicking a static column, we want to select the row conceptually
+    const clickedStep = displaySteps[index];
+    if (clickedStep) {
+      setSelectedStepId(clickedStep.id === selectedStepId ? null : clickedStep.id);
+    }
+  };
+
+  const handleNameEditComplete = (e: React.FocusEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>, step: TaskStep) => {
+    const newName = e.currentTarget.value;
+    if (newName && newName !== step.name) {
+      onUpdateStep(step.id, { name: newName });
+    }
+    setIsEditingName(false);
+  };
+
   // Helper to re-map content to fixed slots (ID, successJump, failureJump, failureTip)
   const applyFixedSlots = (newContentOrder: TaskStep[], baseSlots: TaskStep[]): TaskStep[] => {
     return newContentOrder.map((content, idx) => ({
@@ -378,139 +396,201 @@ export default function ProcessTaskDetail({
         onContextMenu={onContextMenu}
         className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm border border-outline-variant/10 flex flex-col flex-1"
       >
-        <div className="overflow-y-auto overflow-x-auto custom-scrollbar flex-1">
-          <table className="w-full text-left border-collapse min-w-[800px]">
-            <thead className="sticky top-0 z-10">
-              <tr className="bg-surface-container-high border-b border-outline-variant/20">
-                <th className="px-4 py-4 w-10"></th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[8%]">{t('common.step_id')}</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[37%]">{t('process.task_category_name')}</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[12%]">{t('common.success_jump')}</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[12%]">{t('common.failure_jump')}</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest w-[23%]">{t('common.failure_tip')}</th>
-              </tr>
-            </thead>
-            <Reorder.Group 
-              ref={containerRef}
-              as="tbody" 
-              axis="y" 
-              values={displaySteps} 
-              onReorder={handleReorder}
-              className="divide-y divide-outline-variant/5"
-            >
-              {displaySteps.map((step, index) => {
-                const isSelected = selectedStepId === step.id;
-                const isTarget = isShiftDrag && index === targetIndex && step.id !== draggingStepIdRef.current;
-                
-                // Using explicit standard tailwind classes
+        <div className="overflow-y-auto overflow-x-auto custom-scrollbar flex-1 relative">
+          <div className="flex flex-row w-full min-w-[900px]">
+            {/* COLUMN 1: ID (Static) */}
+            <div className="flex flex-col w-[8%] shrink-0 relative">
+              <div className="h-14 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+                {t('common.step_id')}
+              </div>
+              {steps.map((step, index) => {
+                const isSelected = index === activeRowIndex;
                 let rowBgClass = 'transition-colors duration-200 ';
                 if (isSelected) {
                   rowBgClass += '!bg-blue-100/80 ';
-                } else if (isTarget) {
-                  rowBgClass += '!bg-amber-100 !outline !outline-2 !outline-amber-400 !z-10 relative ';
+                } else if (isShiftDrag && index === targetIndex) {
+                  rowBgClass += '!bg-amber-100';
                 } else {
-                  rowBgClass += 'group-hover:bg-primary/5 ';
+                  rowBgClass += 'hover:bg-primary/5 ';
                 }
-
+                
                 return (
-                   <Reorder.Item 
-                    as="tr" 
-                    key={step.id} 
-                    value={step}
-                    data-step-id={step.id}
-                    data-target-index={index}
-                    onDragStart={(e) => handleDragStart(e, step.id, index)}
-                    onDragEnd={(e, info) => handleDragEnd(e, info, step.id)}
-                    onDrag={handleDrag}
-                    onClick={() => setSelectedStepId(step.id === selectedStepId ? null : step.id)}
-                    onDoubleClick={() => step.name && onJumpToTask(step.name)}
-                    onContextMenu={(e) => {
-                      e.stopPropagation();
-                      onContextMenu(e, step.id);
-                    }}
-                    className={`shimmer-row group relative z-0 cursor-pointer ${isSelected ? 'z-10' : ''} ${rowBgClass}`}
-                  >
-                    <td className={`px-4 py-4 text-center`}>
-                      <GripVertical size={18} className="text-outline-variant hover:text-primary cursor-grab active:cursor-grabbing transition-colors" />
-                    </td>
-                    <td className={`px-6 py-4 text-sm font-medium text-on-surface-variant`}>
-                      {(index + 1).toString().padStart(2, '0')}
-                    </td>
-                    <td className={`px-6 py-4`}>
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {isEditingName && isSelected ? (
-                          <div className="flex items-center gap-1.5 w-full">
-                            <span className="text-sm font-semibold text-on-surface whitespace-nowrap shrink-0">
-                              {getCategoryLabel(step.category, t)} /
-                            </span>
-                            <input 
-                              autoFocus
-                              type="text"
-                              defaultValue={step.name}
-                              onClick={(e) => e.stopPropagation()}
-                              onBlur={(e) => {
-                                const newName = e.target.value;
-                                if (newName && newName !== step.name) {
-                                  // Simplified update logic to fulfill standard name change
-                                  onUpdateStep(step.id, { name: newName });
-                                }
-                                setIsEditingName(false);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  const newName = e.currentTarget.value;
-                                  if (newName && newName !== step.name) {
-                                    onUpdateStep(step.id, { name: newName });
-                                  }
-                                  setIsEditingName(false);
-                                }
-                              }}
-                              className="flex-1 bg-surface-container-lowest border-2 border-primary rounded-lg px-3 py-1.5 text-sm font-bold outline-none shadow-lg animate-in zoom-in-95 duration-200"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 text-sm font-semibold text-on-surface flex min-w-0">
-                            <span className="shrink-0">{getCategoryLabel(step.category, t)}</span>
-                            <span className="text-outline-variant font-normal">/</span>
-                            <span className="truncate">
-                              {step.name || <span className="text-outline-variant font-normal italic">{t('common.unnamed_step')}</span>}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className={`px-6 py-4`}>
-                      <input 
+                  <div key={`id-${step.id}`} className={`h-16 flex items-center px-6 border-b border-outline-variant/5 text-sm font-medium text-on-surface-variant ${rowBgClass}`} onClick={() => handleRowClick(index)}>
+                    {(index + 1).toString().padStart(2, '0')}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* COLUMN 2: Task Category/Name (Draggable via Reorder.Group) */}
+            <div className="flex flex-col w-[40%] shrink-0 border-x border-outline-variant/10 relative">
+              <div className="h-14 flex items-center px-4 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+                {t('process.task_category_name')}
+              </div>
+              <Reorder.Group 
+                ref={containerRef}
+                axis="y" 
+                values={displaySteps} 
+                onReorder={handleReorder}
+                className="flex flex-col w-full"
+              >
+                {displaySteps.map((step, index) => {
+                  const isSelected = selectedStepId === step.id;
+                  const isTarget = isShiftDrag && index === targetIndex && step.id !== draggingStepIdRef.current;
+                  
+                  let rowBgClass = 'transition-colors duration-200 ';
+                  if (isSelected) {
+                    rowBgClass += '!bg-blue-100/80 ';
+                  } else if (isTarget) {
+                    rowBgClass += '!bg-amber-100 !outline !outline-2 !outline-amber-400 !z-10 relative ';
+                  } else {
+                    rowBgClass += 'hover:bg-primary/5 ';
+                  }
+
+                  return (
+                    <Reorder.Item 
+                      key={step.id} 
+                      value={step}
+                      data-step-id={step.id}
+                      data-target-index={index}
+                      onDragStart={(e) => handleDragStart(e, step.id, index)}
+                      onDragEnd={(e, info) => handleDragEnd(e, info, step.id)}
+                      onDrag={handleDrag}
+                      onClick={() => setSelectedStepId(step.id === selectedStepId ? null : step.id)}
+                      onDoubleClick={() => step.name && onJumpToTask(step.name)}
+                      onContextMenu={(e) => {
+                        e.stopPropagation();
+                        onContextMenu(e, step.id);
+                      }}
+                      className={`h-16 group relative z-0 cursor-pointer flex items-center px-4 border-b border-outline-variant/5 ${isSelected ? 'z-10' : ''} ${rowBgClass}`}
+                    >
+                      // <GripVertical size={18} className="text-outline-variant hover:text-primary cursor-grab active:cursor-grabbing transition-colors mr-3 shrink-0" />
+                      
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                          {isEditingName && isSelected ? (
+                            <div className="flex items-center gap-1.5 w-full">
+                              <span className="text-sm font-semibold text-on-surface whitespace-nowrap shrink-0">
+                                {getCategoryLabel(step.category, t)} /
+                              </span>
+                              <input 
+                                autoFocus
+                                type="text"
+                                defaultValue={step.name}
+                                onClick={(e) => e.stopPropagation()}
+                                onBlur={(e) => handleNameEditComplete(e, step)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleNameEditComplete(e, step);
+                                }}
+                                className="flex-1 bg-surface-container-lowest border-2 border-primary rounded-lg px-3 py-1 text-sm font-bold outline-none shadow-lg animate-in zoom-in-95 duration-200"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-sm font-semibold text-on-surface flex min-w-0">
+                              <span className="shrink-0">{getCategoryLabel(step.category, t)}</span>
+                              <span className="text-outline-variant font-normal">/</span>
+                              <span className="truncate">
+                                {step.name || <span className="text-outline-variant font-normal italic">{t('common.unnamed_step')}</span>}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                    </Reorder.Item>
+                  );
+                })}
+              </Reorder.Group>
+            </div>
+
+            {/* COLUMN 3: Success Jump (Static) */}
+            <div className="flex flex-col w-[12%] shrink-0 relative">
+              <div className="h-14 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+                {t('common.success_jump')}
+              </div>
+              {steps.map((step, index) => {
+                const isSelected = index === activeRowIndex;
+                let rowBgClass = 'transition-colors duration-200 ';
+                if (isSelected) {
+                  rowBgClass += '!bg-blue-100/80 ';
+                } else if (isShiftDrag && index === targetIndex) {
+                  rowBgClass += '!bg-amber-100';
+                } else {
+                  rowBgClass += 'hover:bg-primary/5 ';
+                }
+                
+                return (
+                  <div key={`sj-${step.id}`} className={`h-16 flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
+                     <input 
                         type="text"
                         defaultValue={step.successJump}
                         onClick={(e) => e.stopPropagation()}
                         onBlur={(e) => onUpdateStep(step.id, { successJump: e.target.value })}
                         className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 rounded-lg px-3 py-1.5 text-sm text-tertiary font-medium outline-none transition-all shadow-sm"
                       />
-                    </td>
-                    <td className={`px-6 py-4`}>
-                      <input 
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* COLUMN 4: Failure Jump (Static) */}
+            <div className="flex flex-col w-[12%] shrink-0 relative">
+              <div className="h-14 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+                {t('common.failure_jump')}
+              </div>
+              {steps.map((step, index) => {
+                 const isSelected = index === activeRowIndex;
+                 let rowBgClass = 'transition-colors duration-200 ';
+                 if (isSelected) {
+                   rowBgClass += '!bg-blue-100/80 ';
+                 } else if (isShiftDrag && index === targetIndex) {
+                   rowBgClass += '!bg-amber-100';
+                 } else {
+                   rowBgClass += 'hover:bg-primary/5 ';
+                 }
+                 
+                return (
+                  <div key={`fj-${step.id}`} className={`h-16 flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
+                     <input 
                         type="text"
                         defaultValue={step.failureJump}
                         onClick={(e) => e.stopPropagation()}
                         onBlur={(e) => onUpdateStep(step.id, { failureJump: e.target.value })}
                         className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-error/50 focus:ring-2 focus:ring-error/10 rounded-lg px-3 py-1.5 text-sm text-error font-medium outline-none transition-all shadow-sm"
                       />
-                    </td>
-                    <td className={`px-6 py-4`}>
-                      <input 
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* COLUMN 5: Failure Tip (Static) */}
+            <div className="flex flex-col w-[28%] shrink-0 relative">
+              <div className="h-14 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+                {t('common.failure_tip')}
+              </div>
+              {steps.map((step, index) => {
+                 const isSelected = index === activeRowIndex;
+                 let rowBgClass = 'transition-colors duration-200 ';
+                 if (isSelected) {
+                   rowBgClass += '!bg-blue-100/80 ';
+                 } else if (isShiftDrag && index === targetIndex) {
+                   rowBgClass += '!bg-amber-100';
+                 } else {
+                   rowBgClass += 'hover:bg-primary/5 ';
+                 }
+
+                return (
+                  <div key={`tip-${step.id}`} className={`h-16 flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
+                     <input 
                         type="text"
                         defaultValue={step.failureTip}
                         onClick={(e) => e.stopPropagation()}
                         onBlur={(e) => onUpdateStep(step.id, { failureTip: e.target.value })}
                         className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 rounded-lg px-3 py-1.5 text-xs text-on-surface-variant italic outline-none transition-all shadow-sm"
                       />
-                    </td>
-                  </Reorder.Item>
-                );
+                  </div>
+                )
               })}
-            </Reorder.Group>
-          </table>
+            </div>
+
+          </div>
         </div>
       </div>
     </section>
