@@ -93,6 +93,12 @@ export default function App() {
 
   const currentNotes = selectedTaskId ? (taskNotes[selectedTaskId] || '') : '';
 
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (a.type === '顶级' && b.type !== '顶级') return -1;
+    if (a.type !== '顶级' && b.type === '顶级') return 1;
+    return 0;
+  });
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Action Bar */}
@@ -217,13 +223,13 @@ export default function App() {
                   setIsSearchDropdownOpen(true);
                 }}
               />
-              {isSearchDropdownOpen && searchQuery.trim() !== '' && tasks.filter(task => 
+              {isSearchDropdownOpen && searchQuery.trim() !== '' && sortedTasks.filter(task => 
                 task.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                 task.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 task.type.toLowerCase().includes(searchQuery.toLowerCase())
               ).length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-surface-container-high border border-outline-variant/20 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto custom-scrollbar">
-                  {tasks.filter(task => 
+                  {sortedTasks.filter(task => 
                     task.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                     task.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     task.type.toLowerCase().includes(searchQuery.toLowerCase())
@@ -256,7 +262,7 @@ export default function App() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
-                {tasks.map((task) => (
+                {sortedTasks.map((task) => (
                   <tr 
                     key={task.id}
                     onClick={() => navigateToTask(task.id)}

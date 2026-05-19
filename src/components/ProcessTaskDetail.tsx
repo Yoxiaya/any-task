@@ -464,8 +464,7 @@ export default function ProcessTaskDetail({
                       }}
                       className={`h-16 group relative z-0 cursor-pointer flex items-center px-4 border-b border-outline-variant/5 ${isSelected ? 'z-10' : ''} ${rowBgClass}`}
                     >
-                      // <GripVertical size={18} className="text-outline-variant hover:text-primary cursor-grab active:cursor-grabbing transition-colors mr-3 shrink-0" />
-                      
+
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
                           {isEditingName && isSelected ? (
                             <div className="flex items-center gap-1.5 w-full">
