@@ -21,10 +21,44 @@ async function startServer() {
     return { tasks: [], steps: {}, notes: {} };
   };
 
+  const writeDb = (db: any) => {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf-8');
+  };
+
   // API Routes
   app.get('/api/tasks', (req, res) => {
     const db = readDb();
     res.json(db.tasks);
+  });
+
+  app.post('/api/tasks', (req, res) => {
+    const db = readDb();
+    const newTask = req.body;
+    db.tasks = [newTask, ...db.tasks];
+    writeDb(db);
+    res.json(newTask);
+  });
+
+  app.put('/api/tasks/:id', (req, res) => {
+    const db = readDb();
+    const index = db.tasks.findIndex((t: any) => t.id === req.params.id);
+    if (index !== -1) {
+      db.tasks[index] = { ...db.tasks[index], ...req.body };
+      writeDb(db);
+      res.json(db.tasks[index]);
+    } else {
+      res.status(404).json({ error: "任务不存在" });
+    }
+  });
+
+  app.delete('/api/tasks/:id', (req, res) => {
+    const db = readDb();
+    db.tasks = db.tasks.filter((t: any) => t.id !== req.params.id);
+    delete db.steps[req.params.id];
+    delete db.notes[req.params.id];
+    writeDb(db);
+    res.json({ success: true });
   });
 
   app.get('/api/tasks/:id', (req, res) => {
@@ -43,6 +77,14 @@ async function startServer() {
     res.json(steps);
   });
 
+  app.put('/api/tasks/:id/steps', (req, res) => {
+    const db = readDb();
+    if (!db.steps) db.steps = {};
+    db.steps[req.params.id] = req.body;
+    writeDb(db);
+    res.json(db.steps[req.params.id]);
+  });
+
   app.get('/api/tasks/:id/note', (req, res) => {
     const db = readDb();
     const note = db.notes && db.notes[req.params.id];
@@ -51,6 +93,14 @@ async function startServer() {
     } else {
       res.json({ taskId: req.params.id, note: "" }); // Return empty string if not found
     }
+  });
+
+  app.put('/api/tasks/:id/note', (req, res) => {
+    const db = readDb();
+    if (!db.notes) db.notes = {};
+    db.notes[req.params.id] = req.body.note;
+    writeDb(db);
+    res.json({ taskId: req.params.id, note: db.notes[req.params.id] });
   });
 
   app.get('/api/export', (req, res) => {

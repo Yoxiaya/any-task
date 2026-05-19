@@ -21,10 +21,12 @@ interface TaskStore {
   handleGoForward: () => void;
   exportTasks: () => Promise<void>;
   
-  // Modifiers (in a real app these might also PATCH to server, but here we just update local state if it's not strictly required yet, or we don't since the API doc doesn't have POST/PUT endpoints)
-  setTasks: (tasks: Task[]) => void;
-  setTaskSteps: (taskId: string, steps: TaskStep[]) => void;
-  setTaskNote: (taskId: string, note: string) => void;
+  // Modifiers 
+  addTask: (task: Task) => Promise<void>;
+  updateTask: (task: Task) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+  setTaskSteps: (taskId: string, steps: TaskStep[]) => Promise<void>;
+  setTaskNote: (taskId: string, note: string) => Promise<void>;
 }
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
@@ -134,19 +136,83 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       const res = await fetch('/api/export');
       const data = await res.json();
-      console.log('Export Tasks:', data);
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'any-task-export.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (e) {
       console.error("Failed to fetch exported tasks", e);
     }
   },
 
-  setTasks: (tasks) => set({ tasks }),
-  
-  setTaskSteps: (taskId, steps) => set(state => ({
-    taskSteps: { ...state.taskSteps, [taskId]: steps }
-  })),
+  addTask: async (task) => {
+    try {
+      set(state => ({ tasks: [task, ...state.tasks] }));
+      await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task)
+      });
+    } catch (e) {
+      console.error("Failed to create task", e);
+    }
+  },
 
-  setTaskNote: (taskId, note) => set(state => ({
-    taskNotes: { ...state.taskNotes, [taskId]: note }
-  }))
+  updateTask: async (task) => {
+    try {
+      set(state => ({ tasks: state.tasks.map(t => t.id === task.id ? task : t) }));
+      await fetch(`/api/tasks/${task.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task)
+      });
+    } catch (e) {
+      console.error("Failed to update task", e);
+    }
+  },
+
+  deleteTask: async (taskId) => {
+    try {
+      set(state => ({ tasks: state.tasks.filter(t => t.id !== taskId) }));
+      await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error("Failed to delete task", e);
+    }
+  },
+  
+  setTaskSteps: async (taskId, steps) => {
+    try {
+      set(state => ({
+        taskSteps: { ...state.taskSteps, [taskId]: steps }
+      }));
+      await fetch(`/api/tasks/${taskId}/steps`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(steps)
+      });
+    } catch (e) {
+      console.error("Failed to fetch steps for", taskId, e);
+    }
+  },
+
+  setTaskNote: async (taskId, note) => {
+    try {
+      set(state => ({
+        taskNotes: { ...state.taskNotes, [taskId]: note }
+      }));
+      await fetch(`/api/tasks/${taskId}/note`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note })
+      });
+    } catch (e) {
+      console.error("Failed to store note", e);
+    }
+  }
 }));

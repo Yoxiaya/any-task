@@ -11,7 +11,8 @@ export function useTaskManagement() {
     history,
     historyIndex,
     fetchTasks,
-    setTasks,
+    addTask,
+    updateTask: updateTaskStore,
     setTaskSteps,
     navigateToTask: storeNavigateToTask,
     handleGoBack: storeHandleGoBack,
@@ -37,7 +38,7 @@ export function useTaskManagement() {
   const handleCreateTask = (name: string, type: TaskType) => {
     const newId = generateNextTaskId(tasks, type);
     const newTask: Task = { id: newId, name, type };
-    setTasks([newTask, ...tasks]);
+    addTask(newTask);
     navigateToTask(newId);
   };
 
@@ -68,8 +69,7 @@ export function useTaskManagement() {
         const newId = generateNextTaskId(newTasks, newTaskType);
         const newTask: Task = { id: newId, name: updates.name as string, type: newTaskType };
         tasksUpdated = true;
-        newTasks = [newTask, ...newTasks];
-        setTasks(newTasks);
+        addTask(newTask);
       }
     }
 
@@ -112,7 +112,7 @@ export function useTaskManagement() {
   };
 
   const updateTask = (updatedTask: Task) => {
-    setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+    updateTaskStore(updatedTask);
   };
 
   return {
