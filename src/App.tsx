@@ -34,6 +34,7 @@ export default function App() {
   
   const {
     tasks,
+    taskSteps,
     selectedTaskId,
     selectedTask,
     currentSteps,
@@ -94,8 +95,10 @@ export default function App() {
   const currentNotes = selectedTaskId ? (taskNotes[selectedTaskId] || '') : '';
 
   const sortedTasks = [...tasks].sort((a, b) => {
-    if (a.type === '顶级' && b.type !== '顶级') return -1;
-    if (a.type !== '顶级' && b.type === '顶级') return 1;
+    const aIsTop = a.id === 'T-1001' || a.name === '顶级任务';
+    const bIsTop = b.id === 'T-1001' || b.name === '顶级任务';
+    if (aIsTop && !bIsTop) return -1;
+    if (!aIsTop && bIsTop) return 1;
     return 0;
   });
 
@@ -143,7 +146,7 @@ export default function App() {
                       <button
                         key={t.id}
                         onClick={() => navigateToTask(t.id)}
-                        className="w-full text-left px-3 py-2 text-xs text-on-surface hover:bg-primary/10 transition-colors flex items-center gap-2"
+                        className="w-full text-left px-4 py-2.5 text-sm text-on-surface hover:bg-primary/10 transition-colors flex items-center gap-2"
                       >
                         <span className="font-mono text-primary font-bold">{t.id}</span>
                         <span className="truncate">{t.name}</span>
@@ -164,7 +167,16 @@ export default function App() {
             <FileUp size={18} />
             <span>{t('buttons.import')}</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-semibold border border-outline-variant/20 hover:bg-surface-container-highest transition-colors">
+          <button 
+            className="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-semibold border border-outline-variant/20 hover:bg-surface-container-highest transition-colors"
+            onClick={() => {
+              const exportData = sortedTasks.map(task => ({
+                ...task,
+                steps: taskSteps[task.id] || []
+              }));
+              console.log('Export Tasks:', exportData);
+            }}
+          >
             <FileDown size={18} />
             <span>{t('buttons.export')}</span>
           </button>
@@ -210,9 +222,9 @@ export default function App() {
               </button>
             </div>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant z-10" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant z-10" />
               <input 
-                className="w-full pl-9 pr-4 py-2 bg-surface-container-lowest border border-outline-variant/20 rounded-lg text-xs focus:ring-1 focus:ring-primary/30 outline-none relative z-10" 
+                className="w-full pl-9 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant/20 rounded-lg text-sm focus:ring-1 focus:ring-primary/30 outline-none relative z-10" 
                 placeholder={t('sidebar.search_placeholder')} 
                 type="text"
                 value={searchQuery}
@@ -236,7 +248,7 @@ export default function App() {
                   ).map(task => (
                     <div 
                       key={task.id}
-                      className="px-3 py-2 text-xs hover:bg-primary/10 cursor-pointer text-on-surface truncate"
+                      className="px-4 py-2 text-sm hover:bg-primary/10 cursor-pointer text-on-surface truncate"
                       onClick={() => {
                         setSearchQuery(task.name);
                         navigateToTask(task.id);
@@ -256,9 +268,9 @@ export default function App() {
             <table className="w-full text-left border-collapse table-fixed">
               <thead className="sticky top-0 bg-surface-container-high/90 backdrop-blur shadow-sm z-10">
                 <tr>
-                  <th className="px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider w-[25%]">{t('sidebar.id')}</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider w-[50%]">{t('sidebar.task_name')}</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider w-[25%]">{t('sidebar.type')}</th>
+                  <th className="px-4 py-3.5 text-xs font-bold text-on-surface-variant uppercase tracking-wider w-[25%]">{t('sidebar.id')}</th>
+                  <th className="px-4 py-3.5 text-xs font-bold text-on-surface-variant uppercase tracking-wider w-[50%]">{t('sidebar.task_name')}</th>
+                  <th className="px-4 py-3.5 text-xs font-bold text-on-surface-variant uppercase tracking-wider w-[25%]">{t('sidebar.type')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
@@ -268,14 +280,14 @@ export default function App() {
                     onClick={() => navigateToTask(task.id)}
                     className={`hover:bg-primary/5 cursor-pointer transition-colors ${selectedTaskId === task.id ? 'bg-surface-container-lowest' : ''}`}
                   >
-                    <td className={`px-4 py-3.5 text-xs font-mono truncate ${selectedTaskId === task.id ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
+                    <td className={`px-4 py-4 text-sm font-mono truncate ${selectedTaskId === task.id ? 'text-primary font-bold' : 'text-on-surface-variant'}`}>
                       {task.id}
                     </td>
-                    <td className={`px-4 py-3.5 text-xs truncate ${selectedTaskId === task.id ? 'font-semibold text-on-surface' : 'text-on-surface-variant'}`}>
+                    <td className={`px-4 py-4 text-sm truncate ${selectedTaskId === task.id ? 'font-semibold text-on-surface' : 'text-on-surface-variant'}`}>
                       {task.name}
                     </td>
-                    <td className="px-4 py-3.5">
-                      <span className={`px-2 py-0.5 text-[9px] font-bold rounded ${task.type === '顶级' ? 'bg-blue-100 text-blue-700' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                    <td className="px-4 py-4">
+                      <span className={`px-2 py-1 text-[11px] font-bold rounded ${(task.id === 'T-1001' || task.name === '顶级任务') ? 'bg-blue-100 text-blue-700' : 'bg-surface-container-high text-on-surface-variant'}`}>
                         {task.type === '流程' ? t('task_type.process') : task.type === '定时' ? t('task_type.scheduled') : t('task_type.top_level')}
                       </span>
                     </td>

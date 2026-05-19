@@ -18,4 +18,5 @@ export interface TaskStep {
   successJump: string;
   failureJump: string;
   failureTip: string;
+  _uid?: string;
 }

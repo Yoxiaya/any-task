@@ -31,7 +31,7 @@ export default function TopLevelTaskDetail({ selectedTask }: TopLevelTaskDetailP
               <stat.icon size={24} />
             </div>
             <div>
-              <div className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{stat.label}</div>
+              <div className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">{stat.label}</div>
               <div className="text-2xl font-black text-on-surface">{stat.value}</div>
             </div>
           </div>
@@ -40,7 +40,7 @@ export default function TopLevelTaskDetail({ selectedTask }: TopLevelTaskDetailP
 
       <div className="flex-1 bg-surface-container-lowest rounded-2xl border border-outline-variant/10 shadow-sm p-8 flex flex-col gap-6">
         <h3 className="text-lg font-bold text-on-surface">架构概览</h3>
-        <div className="flex-1 border-2 border-dashed border-outline-variant/20 rounded-xl flex items-center justify-center text-on-surface-variant italic text-sm">
+        <div className="flex-1 border-2 border-dashed border-outline-variant/20 rounded-xl flex items-center justify-center text-on-surface-variant italic text-base">
           [ 架构拓扑图占位符 ]
         </div>
       </div>

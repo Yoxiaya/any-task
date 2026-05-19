@@ -3,8 +3,15 @@ import { Task, TaskStep, TaskType } from '../types';
 import { generateNextTaskId, generateNextStepId } from '../utils';
 
 export function useTaskManagement(initialTasks: Task[], initialSteps: Record<string, TaskStep[]>) {
+  // Ensure uids
+  const initializedSteps = Object.fromEntries(
+    Object.entries(initialSteps).map(([k, v]) => [
+      k, v.map(s => ({ ...s, _uid: s._uid || Math.random().toString(36).substr(2, 9) }))
+    ])
+  );
+  
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [taskSteps, setTaskSteps] = useState<Record<string, TaskStep[]>>(initialSteps);
+  const [taskSteps, setTaskSteps] = useState<Record<string, TaskStep[]>>(initializedSteps);
   const [selectedTaskId, setSelectedTaskId] = useState(initialTasks[0]?.id || '');
   const [history, setHistory] = useState<string[]>([initialTasks[0]?.id || '']);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -52,7 +59,7 @@ export function useTaskManagement(initialTasks: Task[], initialSteps: Record<str
   const handleCreateStep = (taskId: string, newStepData: Omit<TaskStep, 'id'>) => {
     const currentTaskSteps = taskSteps[taskId] || [];
     const newId = generateNextStepId(currentTaskSteps);
-    const newStep: TaskStep = { id: newId, ...newStepData };
+    const newStep: TaskStep = { id: newId, ...newStepData, _uid: Math.random().toString(36).substr(2, 9) };
     setTaskSteps(prev => ({ ...prev, [taskId]: [...currentTaskSteps, newStep] }));
   };
 
@@ -101,6 +108,7 @@ export function useTaskManagement(initialTasks: Task[], initialSteps: Record<str
     const newId = generateNextStepId(currentTaskSteps);
     const newStep: TaskStep = {
       id: newId, category: '-', name: '', successJump: '', failureJump: '', failureTip: '',
+      _uid: Math.random().toString(36).substr(2, 9)
     };
     setTaskSteps(prev => ({ ...prev, [taskId]: [...currentTaskSteps, newStep] }));
   };
@@ -120,6 +128,7 @@ export function useTaskManagement(initialTasks: Task[], initialSteps: Record<str
       const newId = generateNextStepId(currentTaskSteps);
       const newStep: TaskStep = {
         id: newId, category: task.type, name: task.name, successJump: '', failureJump: '', failureTip: '',
+        _uid: Math.random().toString(36).substr(2, 9)
       };
       setTaskSteps(prev => ({ ...prev, [taskId]: [...currentTaskSteps, newStep] }));
     }

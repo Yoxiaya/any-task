@@ -72,7 +72,8 @@ export default function ProcessTaskDetail({
     return newContentOrder.map((content, idx) => ({
       ...baseSlots[idx], // Keep ID, successJump, etc. from the physical slot
       category: content.category,
-      name: content.name
+      name: content.name,
+      _uid: content._uid
     }));
   };
 
@@ -196,12 +197,14 @@ export default function ProcessTaskDetail({
         finalSteps[oldIndex] = {
           ...stepOld,
           category: stepNew.category,
-          name: stepNew.name
+          name: stepNew.name,
+          _uid: stepNew._uid
         };
         finalSteps[newIndex] = {
           ...stepNew,
           category: stepOld.category,
-          name: stepOld.name
+          name: stepOld.name,
+          _uid: stepOld._uid
         };
 
         onReorderSteps(finalSteps);
@@ -223,7 +226,7 @@ export default function ProcessTaskDetail({
         }, 0);
         const newId = (maxId + 1).toString().padStart(2, '0');
         const sourceData = originalSteps[oldIndex];
-        const copy = { ...sourceData, id: newId };
+        const copy = { ...sourceData, id: newId, _uid: Math.random().toString(36).substr(2, 9) };
         
         // 1. First reorder the content of existing steps
         const contentOrder = reorderedItems.map(item => ({ ...item }));
@@ -322,14 +325,14 @@ export default function ProcessTaskDetail({
       {/* Task Notes Area */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">{t('process.task_notes')}</label>
+          <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">{t('process.task_notes')}</label>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-outline-variant font-medium">{t('process.auto_save_tip')}</span>
+            <span className="text-xs text-outline-variant font-medium">{t('process.auto_save_tip')}</span>
           </div>
         </div>
         <textarea 
           key={selectedTask.id}
-          className="w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-xl border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm font-medium resize-none custom-scrollbar"
+          className="w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-xl border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-[15px] font-medium resize-none custom-scrollbar"
           placeholder={t('process.notes_placeholder')}
           rows={3}
           defaultValue={notes}
@@ -342,7 +345,7 @@ export default function ProcessTaskDetail({
         <button
           onClick={() => setIsEditingName(true)}
           disabled={!selectedStepId}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-[15px] font-bold transition-all ${
             selectedStepId 
               ? 'bg-primary text-on-primary shadow-md hover:bg-primary-dim active:scale-95' 
               : 'bg-surface-container-high text-outline-variant cursor-not-allowed opacity-50'
@@ -355,7 +358,7 @@ export default function ProcessTaskDetail({
         <button
           onClick={handleSave}
           disabled={saveStatus !== 'idle'}
-          className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all shadow-md active:scale-95 disabled:opacity-70 disabled:scale-100 ${
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-[15px] font-bold transition-all shadow-md active:scale-95 disabled:opacity-70 disabled:scale-100 ${
             saveStatus === 'saved' 
               ? 'bg-emerald-500 text-white' 
               : 'bg-secondary text-on-secondary hover:bg-secondary/90'
@@ -386,7 +389,7 @@ export default function ProcessTaskDetail({
           }`}
         >
           <Trash2 size={18} className={isOverDeleteZone ? 'animate-bounce' : ''} />
-          <span className="text-xs font-bold tracking-wide">
+          <span className="text-[15px] font-bold tracking-wide">
             {isOverDeleteZone ? t('process.release_to_delete') : t('process.drag_to_delete')}
           </span>
         </div>
@@ -400,7 +403,7 @@ export default function ProcessTaskDetail({
           <div className="flex flex-row w-full min-w-[900px]">
             {/* COLUMN 1: ID (Static) */}
             <div className="flex flex-col w-[8%] shrink-0 relative">
-              <div className="h-14 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+              <div className="h-16 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[12px] font-bold text-on-surface-variant uppercase tracking-widest">
                 {t('common.step_id')}
               </div>
               {steps.map((step, index) => {
@@ -415,7 +418,7 @@ export default function ProcessTaskDetail({
                 }
                 
                 return (
-                  <div key={`id-${step.id}`} className={`h-16 flex items-center px-6 border-b border-outline-variant/5 text-sm font-medium text-on-surface-variant ${rowBgClass}`} onClick={() => handleRowClick(index)}>
+                  <div key={`id-${step.id}`} className={`h-[72px] flex items-center px-6 border-b border-outline-variant/5 text-[15px] font-medium text-on-surface-variant ${rowBgClass}`} onClick={() => handleRowClick(index)}>
                     {(index + 1).toString().padStart(2, '0')}
                   </div>
                 )
@@ -424,7 +427,7 @@ export default function ProcessTaskDetail({
 
             {/* COLUMN 2: Task Category/Name (Draggable via Reorder.Group) */}
             <div className="flex flex-col w-[40%] shrink-0 border-x border-outline-variant/10 relative">
-              <div className="h-14 flex items-center px-4 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+              <div className="h-16 flex items-center px-4 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[12px] font-bold text-on-surface-variant uppercase tracking-widest">
                 {t('process.task_category_name')}
               </div>
               <Reorder.Group 
@@ -449,7 +452,7 @@ export default function ProcessTaskDetail({
 
                   return (
                     <Reorder.Item 
-                      key={step.id} 
+                      key={step._uid || step.id} 
                       value={step}
                       data-step-id={step.id}
                       data-target-index={index}
@@ -462,13 +465,13 @@ export default function ProcessTaskDetail({
                         e.stopPropagation();
                         onContextMenu(e, step.id);
                       }}
-                      className={`h-16 group relative z-0 cursor-pointer flex items-center px-4 border-b border-outline-variant/5 ${isSelected ? 'z-10' : ''} ${rowBgClass}`}
+                      className={`h-[72px] group relative z-0 cursor-pointer flex items-center px-4 border-b border-outline-variant/5 ${isSelected ? 'z-10' : ''} ${rowBgClass}`}
                     >
 
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
                           {isEditingName && isSelected ? (
                             <div className="flex items-center gap-1.5 w-full">
-                              <span className="text-sm font-semibold text-on-surface whitespace-nowrap shrink-0">
+                              <span className="text-[15px] font-semibold text-on-surface whitespace-nowrap shrink-0">
                                 {getCategoryLabel(step.category, t)} /
                               </span>
                               <input 
@@ -480,11 +483,11 @@ export default function ProcessTaskDetail({
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') handleNameEditComplete(e, step);
                                 }}
-                                className="flex-1 bg-surface-container-lowest border-2 border-primary rounded-lg px-3 py-1 text-sm font-bold outline-none shadow-lg animate-in zoom-in-95 duration-200"
+                                className="flex-1 bg-surface-container-lowest border-2 border-primary rounded-lg px-3 py-1.5 text-[15px] font-bold outline-none shadow-lg animate-in zoom-in-95 duration-200"
                               />
                             </div>
                           ) : (
-                            <div className="flex items-center gap-1.5 text-sm font-semibold text-on-surface flex min-w-0">
+                            <div className="flex items-center gap-1.5 text-[15px] font-semibold text-on-surface flex min-w-0">
                               <span className="shrink-0">{getCategoryLabel(step.category, t)}</span>
                               <span className="text-outline-variant font-normal">/</span>
                               <span className="truncate">
@@ -501,7 +504,7 @@ export default function ProcessTaskDetail({
 
             {/* COLUMN 3: Success Jump (Static) */}
             <div className="flex flex-col w-[12%] shrink-0 relative">
-              <div className="h-14 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+              <div className="h-16 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[12px] font-bold text-on-surface-variant uppercase tracking-widest">
                 {t('common.success_jump')}
               </div>
               {steps.map((step, index) => {
@@ -516,13 +519,13 @@ export default function ProcessTaskDetail({
                 }
                 
                 return (
-                  <div key={`sj-${step.id}`} className={`h-16 flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
+                  <div key={`sj-${step.id}`} className={`h-[72px] flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
                      <input 
                         type="text"
                         defaultValue={step.successJump}
                         onClick={(e) => e.stopPropagation()}
                         onBlur={(e) => onUpdateStep(step.id, { successJump: e.target.value })}
-                        className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 rounded-lg px-3 py-1.5 text-sm text-tertiary font-medium outline-none transition-all shadow-sm"
+                        className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 rounded-lg px-3 py-2 text-[15px] text-tertiary font-medium outline-none transition-all shadow-sm"
                       />
                   </div>
                 )
@@ -531,7 +534,7 @@ export default function ProcessTaskDetail({
 
             {/* COLUMN 4: Failure Jump (Static) */}
             <div className="flex flex-col w-[12%] shrink-0 relative">
-              <div className="h-14 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+              <div className="h-16 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[12px] font-bold text-on-surface-variant uppercase tracking-widest">
                 {t('common.failure_jump')}
               </div>
               {steps.map((step, index) => {
@@ -546,13 +549,13 @@ export default function ProcessTaskDetail({
                  }
                  
                 return (
-                  <div key={`fj-${step.id}`} className={`h-16 flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
+                  <div key={`fj-${step.id}`} className={`h-[72px] flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
                      <input 
                         type="text"
                         defaultValue={step.failureJump}
                         onClick={(e) => e.stopPropagation()}
                         onBlur={(e) => onUpdateStep(step.id, { failureJump: e.target.value })}
-                        className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-error/50 focus:ring-2 focus:ring-error/10 rounded-lg px-3 py-1.5 text-sm text-error font-medium outline-none transition-all shadow-sm"
+                        className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-error/50 focus:ring-2 focus:ring-error/10 rounded-lg px-3 py-2 text-[15px] text-error font-medium outline-none transition-all shadow-sm"
                       />
                   </div>
                 )
@@ -561,7 +564,7 @@ export default function ProcessTaskDetail({
 
             {/* COLUMN 5: Failure Tip (Static) */}
             <div className="flex flex-col w-[28%] shrink-0 relative">
-              <div className="h-14 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">
+              <div className="h-16 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[12px] font-bold text-on-surface-variant uppercase tracking-widest">
                 {t('common.failure_tip')}
               </div>
               {steps.map((step, index) => {
@@ -576,13 +579,13 @@ export default function ProcessTaskDetail({
                  }
 
                 return (
-                  <div key={`tip-${step.id}`} className={`h-16 flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
+                  <div key={`tip-${step.id}`} className={`h-[72px] flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
                      <input 
                         type="text"
                         defaultValue={step.failureTip}
                         onClick={(e) => e.stopPropagation()}
                         onBlur={(e) => onUpdateStep(step.id, { failureTip: e.target.value })}
-                        className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 rounded-lg px-3 py-1.5 text-xs text-on-surface-variant italic outline-none transition-all shadow-sm"
+                        className="w-full bg-surface-container-low border border-outline-variant/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/10 rounded-lg px-3 py-2 text-sm text-on-surface-variant italic outline-none transition-all shadow-sm"
                       />
                   </div>
                 )
