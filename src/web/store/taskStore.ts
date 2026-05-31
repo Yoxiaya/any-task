@@ -21,6 +21,7 @@ interface TaskStore {
   handleGoForward: () => void;
   exportTasks: () => Promise<void>;
   exportTasksAs: () => Promise<void>;
+  importTasks: (file: File) => Promise<void>;
   
   // Modifiers 
   addTask: (task: Task) => Promise<void>;
@@ -194,6 +195,28 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error("Failed to fetch exported tasks", e);
+    }
+  },
+
+  importTasks: async (file: File) => {
+    try {
+      const text = await file.text();
+      const importedData = JSON.parse(text);
+      const res = await fetch('/api/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(importedData)
+      });
+      if (!res.ok) throw new Error('API Error');
+      
+      await get().fetchTasks();
+      const selectedId = get().selectedTaskId;
+      if (selectedId) {
+        await get().fetchDataForTask(selectedId);
+      }
+    } catch (e) {
+      console.error("Failed to import tasks", e);
+      alert("导入失败，请检查文件格式是否正确。");
     }
   },
 

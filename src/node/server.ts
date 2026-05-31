@@ -123,9 +123,44 @@ async function startServer() {
     const db = readDb();
     const exportedTasks = db.tasks.map((task: any) => ({
       ...task,
-      steps: (db.steps && db.steps[task.id]) || []
+      steps: (db.steps && db.steps[task.id]) || [],
+      note: (db.notes && db.notes[task.id]) || ""
     }));
     res.json(exportedTasks);
+  });
+
+  app.post('/api/import', (req, res) => {
+    const db = readDb();
+    const importedTasks = req.body;
+    
+    if (!Array.isArray(importedTasks)) {
+      return res.status(400).json({ error: "无效的导入数据" });
+    }
+
+    if (!db.steps) db.steps = {};
+    if (!db.notes) db.notes = {};
+
+    importedTasks.forEach((importedTask: any) => {
+      const existingTaskIndex = db.tasks.findIndex((t: any) => t.id === importedTask.id);
+      
+      const taskMeta = { ...importedTask };
+      const steps = taskMeta.steps || [];
+      const note = taskMeta.note || "";
+      delete taskMeta.steps;
+      delete taskMeta.note;
+
+      if (existingTaskIndex !== -1) {
+        db.tasks[existingTaskIndex] = taskMeta;
+      } else {
+        db.tasks.unshift(taskMeta);
+      }
+      
+      db.steps[taskMeta.id] = steps;
+      db.notes[taskMeta.id] = note;
+    });
+
+    writeDb(db);
+    res.json({ success: true });
   });
 
   // Vite middleware for development

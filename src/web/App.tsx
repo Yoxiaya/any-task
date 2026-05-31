@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   FileUp, 
@@ -96,6 +96,16 @@ export default function App() {
 
   const currentNotes = selectedTaskId ? (taskNotes[selectedTaskId] || '') : '';
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await useTaskStore.getState().importTasks(file);
+      e.target.value = ''; // reset
+    }
+  };
+
   const sortedTasks = [...tasks].sort((a, b) => {
     const aIsTop = a.id === 'T-1001' || a.name === '顶级任务';
     const bIsTop = b.id === 'T-1001' || b.name === '顶级任务';
@@ -165,7 +175,11 @@ export default function App() {
             setIsCreateModalOpen(true);
           }} />
 
-          <button className="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-semibold border border-outline-variant/20 hover:bg-surface-container-highest transition-colors">
+          <input type="file" title={t('buttons.import', 'import')} className="hidden" ref={fileInputRef} accept=".json" onChange={handleFileChange} />
+          <button 
+            className="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-semibold border border-outline-variant/20 hover:bg-surface-container-highest transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
             <FileUp size={18} />
             <span>{t('buttons.import')}</span>
           </button>
