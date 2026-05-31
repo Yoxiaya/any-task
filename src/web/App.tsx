@@ -60,6 +60,8 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateStepModalOpen, setIsCreateStepModalOpen] = useState(false);
+  const [isImportConfirmModalOpen, setIsImportConfirmModalOpen] = useState(false);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [newTaskType, setNewTaskType] = useState<TaskType>('流程');
   const { taskNotes, setTaskNote } = useTaskStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,9 +103,28 @@ export default function App() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (tasks.length > 0) {
+        setPendingImportFile(file);
+        setIsImportConfirmModalOpen(true);
+        e.target.value = ''; // reset
+        return;
+      }
       await useTaskStore.getState().importTasks(file);
       e.target.value = ''; // reset
     }
+  };
+
+  const confirmImport = async () => {
+    if (pendingImportFile) {
+      await useTaskStore.getState().importTasks(pendingImportFile);
+      setPendingImportFile(null);
+    }
+    setIsImportConfirmModalOpen(false);
+  };
+
+  const cancelImport = () => {
+    setPendingImportFile(null);
+    setIsImportConfirmModalOpen(false);
   };
 
   const sortedTasks = [...tasks].sort((a, b) => {
@@ -391,6 +412,29 @@ export default function App() {
         }}
         hasTarget={!!contextMenu.targetStepId}
       />
+
+      {isImportConfirmModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface p-6 rounded-2xl w-full max-w-sm border border-outline-variant/20 shadow-xl">
+            <h3 className="text-xl font-bold text-on-surface mb-2">确认导入</h3>
+            <p className="text-on-surface-variant font-medium mb-6">导入任务之后会覆盖当前所有任务，确定导入吗？</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                className="px-4 py-2 text-on-surface-variant hover:bg-surface-container rounded-lg font-medium transition-colors"
+                onClick={cancelImport}
+              >
+                取消
+              </button>
+              <button 
+                className="px-4 py-2 bg-error text-on-error rounded-lg font-medium shadow-md shadow-error/20 hover:bg-error/90 hover:shadow-lg hover:-translate-y-px transition-all"
+                onClick={confirmImport}
+              >
+                确定导入
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

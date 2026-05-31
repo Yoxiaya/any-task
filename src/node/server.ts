@@ -130,36 +130,31 @@ async function startServer() {
   });
 
   app.post('/api/import', (req, res) => {
-    const db = readDb();
     const importedTasks = req.body;
     
     if (!Array.isArray(importedTasks)) {
       return res.status(400).json({ error: "无效的导入数据" });
     }
 
-    if (!db.steps) db.steps = {};
-    if (!db.notes) db.notes = {};
+    const newDb = {
+      tasks: [] as any[],
+      steps: {} as any,
+      notes: {} as any
+    };
 
     importedTasks.forEach((importedTask: any) => {
-      const existingTaskIndex = db.tasks.findIndex((t: any) => t.id === importedTask.id);
-      
       const taskMeta = { ...importedTask };
       const steps = taskMeta.steps || [];
       const note = taskMeta.note || "";
       delete taskMeta.steps;
       delete taskMeta.note;
 
-      if (existingTaskIndex !== -1) {
-        db.tasks[existingTaskIndex] = taskMeta;
-      } else {
-        db.tasks.unshift(taskMeta);
-      }
-      
-      db.steps[taskMeta.id] = steps;
-      db.notes[taskMeta.id] = note;
+      newDb.tasks.push(taskMeta);
+      newDb.steps[taskMeta.id] = steps;
+      newDb.notes[taskMeta.id] = note;
     });
 
-    writeDb(db);
+    writeDb(newDb);
     res.json({ success: true });
   });
 
