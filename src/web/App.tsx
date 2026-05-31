@@ -172,7 +172,7 @@ export default function App() {
         try {
           const text = await navigator.clipboard.readText();
           if (text) {
-            processPasteText(text);
+            await processPasteText(text, true);
             return;
           }
         } catch (e) {
@@ -187,11 +187,22 @@ export default function App() {
     }
   };
 
-  const processPasteText = async (text: string) => {
+  const processPasteText = async (text: string, fallbackToModal: boolean = false) => {
     try {
-      const json = JSON.parse(text);
+      let cleanText = text.trim();
+      // 在本地环境或复制时可能会带入隐藏字符或前后缀，尝试直接截取完整的数组部分
+      const startIdx = cleanText.indexOf('[');
+      const endIdx = cleanText.lastIndexOf(']');
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        cleanText = cleanText.substring(startIdx, endIdx + 1);
+      }
+      
+      // 移除不可见字符 (零宽空格等)
+      cleanText = cleanText.replace(/[\u200B-\u200D\uFEFF]/g, '');
+
+      const json = JSON.parse(cleanText);
       if (Array.isArray(json)) {
-        const file = new File([text], 'clipboard.json', { type: 'application/json' });
+        const file = new File([cleanText], 'clipboard.json', { type: 'application/json' });
         if (tasks.length > 0) {
           setPendingPasteFile(file);
           setIsImportConfirmModalOpen(true);
@@ -200,10 +211,21 @@ export default function App() {
         }
         setIsPasteModalOpen(false);
       } else {
-        alert('粘贴板内容格式不正确，期望是一个数组');
+        if (fallbackToModal) {
+          setPasteText(text);
+          setIsPasteModalOpen(true);
+        } else {
+          alert('粘贴板内容格式不正确，期望是一个数组');
+        }
       }
-    } catch (e) {
-      alert('粘贴板内容非法的 JSON 数据');
+    } catch (e: any) {
+      console.error('Failed to parse pasted text:', e, text);
+      if (fallbackToModal) {
+        setPasteText(text);
+        setIsPasteModalOpen(true);
+      } else {
+        alert('粘贴板内容非法的 JSON 数据: ' + (e?.message || ''));
+      }
     }
   };
 
