@@ -11,6 +11,7 @@
     "delete": "删除",
     "import": "导入任务",
     "export": "导出任务",
+    "save_as": "另存为",
     "new_task": "新建任务",
     "common_options": "通用选项"
   },

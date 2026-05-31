@@ -15,7 +15,8 @@ import {
   ChevronDown,
   ListTodo,
   Globe,
-  ArrowUp
+  ArrowUp,
+  Save
 } from 'lucide-react';
 import { TaskType, Task, TaskStep } from './types';
 import EditModal from './components/EditModal';
@@ -176,6 +177,15 @@ export default function App() {
           >
             <FileDown size={18} />
             <span>{t('buttons.export')}</span>
+          </button>
+          <button 
+            className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-semibold hover:bg-primary/20 transition-colors"
+            onClick={() => {
+              useTaskStore.getState().exportTasksAs();
+            }}
+          >
+            <Save size={18} />
+            <span>{t('buttons.save_as')}</span>
           </button>
         </div>
 

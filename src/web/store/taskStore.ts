@@ -20,6 +20,7 @@ interface TaskStore {
   handleGoBack: () => void;
   handleGoForward: () => void;
   exportTasks: () => Promise<void>;
+  exportTasksAs: () => Promise<void>;
   
   // Modifiers 
   addTask: (task: Task) => Promise<void>;
@@ -141,6 +142,48 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       const data = await res.json();
       
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'any-task-export.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to fetch exported tasks", e);
+    }
+  },
+
+  exportTasksAs: async () => {
+    try {
+      const res = await fetch('/api/export');
+      const data = await res.json();
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      
+      if ('showSaveFilePicker' in window) {
+        try {
+          const handle = await (window as any).showSaveFilePicker({
+            suggestedName: 'any-task-export.json',
+            types: [{
+              description: 'JSON File',
+              accept: { 'application/json': ['.json'] },
+            }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+          return;
+        } catch (err: any) {
+          if (err.name !== 'AbortError') {
+            console.error("Failed to save file using picker", err);
+          }
+          return;
+        }
+      }
+      
+      // Fallback
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

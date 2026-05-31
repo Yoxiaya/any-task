@@ -45,7 +45,8 @@
     "confirm": "Confirm",
     "save": "Save",
     "import": "Import",
-    "export": "Export"
+    "export": "Export",
+    "save_as": "Save As"
   },
   "sidebar": {
     "task_directory": "Task Directory",
