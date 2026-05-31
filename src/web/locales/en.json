@@ -1,0 +1,57 @@
+{
+  "process": {
+    "auto_save_tip": "Auto save tip",
+    "notes_placeholder": "Notes placeholder",
+    "edit_name": "Edit name",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "save_data": "Save data",
+    "release_to_delete": "Release to delete",
+    "drag_to_delete": "Drag to delete",
+    "task_category_name": "Task Category Name"
+  },
+  "common": {
+    "step_id": "Step ID",
+    "unnamed_step": "Unnamed Step",
+    "success_jump": "Success Jump",
+    "failure_jump": "Failure Jump",
+    "failure_tip": "Failure Tip",
+    "name": "Name",
+    "category": "Category",
+    "uncategorized": "Uncategorized",
+    "go_back": "Go Back",
+    "go_forward": "Go Forward",
+    "up_level": "Up Level",
+    "referenced_tasks": "Referenced Tasks"
+  },
+  "task_type": {
+    "top_level": "Top Level",
+    "process": "Process",
+    "scheduled": "Scheduled"
+  },
+  "modal": {
+    "add_task_step": "Add Task Step",
+    "task_name_placeholder": "Task Name",
+    "default_process_name": "New Process",
+    "default_scheduled_name": "New Scheduled",
+    "default_normal_name": "New Task",
+    "name_exists": "Name exists",
+    "create_task": "Create Task",
+    "task_name": "Task Name",
+    "edit_task_step": "Edit Task Step"
+  },
+  "buttons": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "import": "Import",
+    "export": "Export"
+  },
+  "sidebar": {
+    "task_directory": "Task Directory",
+    "search_placeholder": "Search",
+    "id": "ID",
+    "task_name": "Task Name",
+    "type": "Type"
+  }
+}
