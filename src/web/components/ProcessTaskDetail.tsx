@@ -332,7 +332,7 @@ export default function ProcessTaskDetail({
           </div>
         </div>
         <textarea 
-          key={selectedTask.id}
+          key={`notes-${selectedTask.id}-${notes || ''}`}
           className="w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-xl border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-[15px] font-medium resize-none custom-scrollbar"
           placeholder={t('process.notes_placeholder')}
           rows={3}
@@ -522,6 +522,7 @@ export default function ProcessTaskDetail({
                 return (
                   <div key={`sj-${step.id}`} className={`h-[72px] flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
                      <input 
+                        key={`input-sj-${step.id}-${step.successJump || ''}`}
                         type="text"
                         defaultValue={step.successJump}
                         onClick={(e) => e.stopPropagation()}
@@ -552,6 +553,7 @@ export default function ProcessTaskDetail({
                 return (
                   <div key={`fj-${step.id}`} className={`h-[72px] flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
                      <input 
+                        key={`input-fj-${step.id}-${step.failureJump || ''}`}
                         type="text"
                         defaultValue={step.failureJump}
                         onClick={(e) => e.stopPropagation()}
@@ -582,6 +584,7 @@ export default function ProcessTaskDetail({
                 return (
                   <div key={`tip-${step.id}`} className={`h-[72px] flex items-center px-6 border-b border-outline-variant/5 ${rowBgClass}`} onClick={() => handleRowClick(index)}>
                      <input 
+                        key={`input-tip-${step.id}-${step.failureTip || ''}`}
                         type="text"
                         defaultValue={step.failureTip}
                         onClick={(e) => e.stopPropagation()}

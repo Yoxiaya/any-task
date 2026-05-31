@@ -46,7 +46,10 @@
     "save": "Save",
     "import": "Import",
     "export": "Export",
-    "save_as": "Save As"
+    "save_as": "Save As",
+    "run_task": "Run Task",
+    "copy_tasks": "Copy",
+    "paste_tasks": "Paste"
   },
   "sidebar": {
     "task_directory": "Task Directory",

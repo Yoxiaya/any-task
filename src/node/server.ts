@@ -158,6 +158,13 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  app.post('/api/run', (req, res) => {
+    console.log("---------- RUN TASK ----------");
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log("------------------------------");
+    res.json({ success: true, message: "Task data logged on server." });
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

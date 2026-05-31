@@ -16,7 +16,10 @@ import {
   ListTodo,
   Globe,
   ArrowUp,
-  Save
+  Save,
+  Play,
+  Copy,
+  ClipboardPaste
 } from 'lucide-react';
 import { TaskType, Task, TaskStep } from './types';
 import EditModal from './components/EditModal';
@@ -61,7 +64,6 @@ export default function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateStepModalOpen, setIsCreateStepModalOpen] = useState(false);
   const [isImportConfirmModalOpen, setIsImportConfirmModalOpen] = useState(false);
-  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [newTaskType, setNewTaskType] = useState<TaskType>('流程');
   const { taskNotes, setTaskNote } = useTaskStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,31 +102,89 @@ export default function App() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleImportClick = () => {
+    if (tasks.length > 0) {
+      setIsImportConfirmModalOpen(true);
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (tasks.length > 0) {
-        setPendingImportFile(file);
-        setIsImportConfirmModalOpen(true);
-        e.target.value = ''; // reset
-        return;
-      }
       await useTaskStore.getState().importTasks(file);
       e.target.value = ''; // reset
     }
   };
 
-  const confirmImport = async () => {
-    if (pendingImportFile) {
-      await useTaskStore.getState().importTasks(pendingImportFile);
-      setPendingImportFile(null);
-    }
+  const confirmImport = () => {
     setIsImportConfirmModalOpen(false);
+    fileInputRef.current?.click();
   };
 
   const cancelImport = () => {
-    setPendingImportFile(null);
     setIsImportConfirmModalOpen(false);
+  };
+
+  const handleRunTask = async () => {
+    if (!selectedTaskId) return;
+
+    const task = tasks.find(t => t.id === selectedTaskId);
+    if (!task) return;
+
+    const steps = taskSteps[selectedTaskId] || [];
+    const note = taskNotes[selectedTaskId] || '';
+
+    const runData = {
+      ...task,
+      steps,
+      note
+    };
+
+    try {
+      await fetch('/api/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(runData)
+      });
+    } catch (e) {
+      console.error("Failed to run task:", e);
+    }
+  };
+
+  const handleCopyTasks = async () => {
+    try {
+      const res = await fetch('/api/export');
+      const data = await res.json();
+      const text = JSON.stringify(data, null, 2);
+      await navigator.clipboard.writeText(text);
+      alert(t('buttons.copy_tasks') + ' 成功' );
+    } catch (e) {
+      console.error('Failed to copy tasks:', e);
+      alert(t('buttons.copy_tasks') + ' 失败' );
+    }
+  };
+
+  const handlePasteTasks = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const json = JSON.parse(text);
+      if (Array.isArray(json)) {
+        const file = new File([text], 'clipboard.json', { type: 'application/json' });
+        if (tasks.length > 0) {
+          setPendingImportFile(file);
+          setIsImportConfirmModalOpen(true);
+        } else {
+          await useTaskStore.getState().importTasks(file);
+        }
+      } else {
+        alert('粘贴板内容格式不正确');
+      }
+    } catch (e) {
+      console.error('Failed to paste tasks:', e);
+      alert('无法读取粘贴板或格式不正确');
+    }
   };
 
   const sortedTasks = [...tasks].sort((a, b) => {
@@ -196,10 +256,34 @@ export default function App() {
             setIsCreateModalOpen(true);
           }} />
 
+          <button 
+            className={`flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-semibold transition-colors ${!selectedTaskId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/20'}`}
+            onClick={handleRunTask}
+            disabled={!selectedTaskId}
+          >
+            <Play size={18} />
+            <span>{t('buttons.run_task')}</span>
+          </button>
+
+          <button 
+            className="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-semibold border border-outline-variant/20 hover:bg-surface-container-highest transition-colors"
+            onClick={handleCopyTasks}
+          >
+            <Copy size={18} />
+            <span>{t('buttons.copy_tasks')}</span>
+          </button>
+          <button 
+            className="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-semibold border border-outline-variant/20 hover:bg-surface-container-highest transition-colors"
+            onClick={handlePasteTasks}
+          >
+            <ClipboardPaste size={18} />
+            <span>{t('buttons.paste_tasks')}</span>
+          </button>
+
           <input type="file" title={t('buttons.import', 'import')} className="hidden" ref={fileInputRef} accept=".json" onChange={handleFileChange} />
           <button 
             className="flex items-center gap-2 px-4 py-2 bg-surface-container-high text-on-surface-variant rounded-lg text-sm font-semibold border border-outline-variant/20 hover:bg-surface-container-highest transition-colors"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handleImportClick}
           >
             <FileUp size={18} />
             <span>{t('buttons.import')}</span>
@@ -426,7 +510,7 @@ export default function App() {
                 取消
               </button>
               <button 
-                className="px-4 py-2 bg-error text-on-error rounded-lg font-medium shadow-md shadow-error/20 hover:bg-error/90 hover:shadow-lg hover:-translate-y-px transition-all"
+                className="px-4 py-2 bg-primary text-on-primary rounded-lg font-medium shadow-md shadow-primary/20 hover:bg-primary/90 hover:shadow-lg hover:-translate-y-px transition-all"
                 onClick={confirmImport}
               >
                 确定导入

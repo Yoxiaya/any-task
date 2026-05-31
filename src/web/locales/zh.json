@@ -13,6 +13,9 @@
     "export": "导出任务",
     "save_as": "另存为",
     "new_task": "新建任务",
+    "run_task": "运行任务",
+    "copy_tasks": "复制",
+    "paste_tasks": "粘贴",
     "common_options": "通用选项"
   },
   "sidebar": {
