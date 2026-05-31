@@ -40,6 +40,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   fetchTasks: async () => {
     try {
       const res = await fetch('/api/tasks');
+      if (!res.ok) throw new Error('API Error');
       const data = await res.json();
       set({ tasks: data });
       
@@ -62,6 +63,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     if (!taskId) return;
     try {
       const res = await fetch(`/api/tasks/${taskId}/steps`);
+      if (!res.ok) throw new Error('API Error');
       const data = await res.json();
       set(state => ({
         taskSteps: { ...state.taskSteps, [taskId]: data }
@@ -75,6 +77,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     if (!taskId) return;
     try {
       const res = await fetch(`/api/tasks/${taskId}/note`);
+      if (!res.ok) throw new Error('API Error');
       const data = await res.json();
       set(state => ({
         taskNotes: { ...state.taskNotes, [taskId]: data.note || '' }

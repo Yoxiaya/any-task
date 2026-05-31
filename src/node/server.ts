@@ -10,20 +10,36 @@ async function startServer() {
   app.use(express.json());
 
   // Database path
-  const dbPath = path.join(process.cwd(), '.data', 'db.json');
+  const dbPath = path.join(process.cwd(), 'data', 'db.json');
 
   // Helper to read DB
   const readDb = () => {
-    if (fs.existsSync(dbPath)) {
-      const data = fs.readFileSync(dbPath, 'utf-8');
-      return JSON.parse(data);
+    const defaultDb = {
+      tasks: [
+        { id: 'T-1001', name: '顶级任务', type: '流程' }
+      ],
+      steps: { 'T-1001': [] },
+      notes: {}
+    };
+    try {
+      if (fs.existsSync(dbPath)) {
+        const data = fs.readFileSync(dbPath, 'utf-8');
+        if (!data.trim()) return defaultDb;
+        return JSON.parse(data);
+      }
+    } catch (e) {
+      console.error('Error reading db.json:', e);
     }
-    return { tasks: [], steps: {}, notes: {} };
+    return defaultDb;
   };
 
   const writeDb = (db: any) => {
-    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-    fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf-8');
+    try {
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+      fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf-8');
+    } catch (e) {
+      console.error('Error writing db.json:', e);
+    }
   };
 
   // API Routes
@@ -115,7 +131,10 @@ async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === 'true' ? false : { port: 0 }
+      },
       appType: "spa",
     });
     app.use(vite.middlewares);
