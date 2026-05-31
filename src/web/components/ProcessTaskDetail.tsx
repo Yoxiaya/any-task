@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { GripVertical, Trash2, Edit3, Save, CheckCircle2 } from 'lucide-react';
+import { Trash2, Edit3, Save, CheckCircle2 } from 'lucide-react';
 import { Task, TaskStep } from '../types';
 import { Reorder, motion } from 'motion/react';
 import { getCategoryLabel } from '../utils';
@@ -24,7 +24,7 @@ export default function ProcessTaskDetail({
   steps,
   notes,
   onUpdateNotes,
-  onEditStep,
+  onEditStep: _onEditStep,
   onContextMenu,
   onReorderSteps,
   onDeleteStep,

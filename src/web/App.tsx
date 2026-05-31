@@ -21,7 +21,7 @@ import {
   Copy,
   ClipboardPaste
 } from 'lucide-react';
-import { TaskType, Task, TaskStep } from './types';
+import { TaskType, TaskStep } from './types';
 import EditModal from './components/EditModal';
 import CreateTaskModal from './components/CreateTaskModal';
 import CreateStepModal from './components/CreateStepModal';
@@ -39,7 +39,6 @@ export default function App() {
   
   const {
     tasks,
-    taskSteps,
     selectedTaskId,
     selectedTask,
     currentSteps,

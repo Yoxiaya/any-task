@@ -38,7 +38,7 @@ const writeDb = (db: any) => {
 };
 
 // API Routes
-router.get('/tasks', (req, res) => {
+router.get('/tasks', (_req, res) => {
   const db = readDb();
   res.json(db.tasks);
 });
@@ -114,7 +114,7 @@ router.put('/tasks/:id/note', (req, res) => {
   res.json({ taskId: req.params.id, note: db.notes[req.params.id] });
 });
 
-router.get('/export', (req, res) => {
+router.get('/export', (_req, res) => {
   const db = readDb();
   const exportedTasks = db.tasks.map((task: any) => ({
     ...task,

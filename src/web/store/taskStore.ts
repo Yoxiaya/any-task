@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Task, TaskStep, TaskType } from '../types';
+import { Task, TaskStep } from '../types';
 
 interface TaskStore {
   tasks: Task[];
@@ -103,7 +103,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   navigateToTask: (taskId: string) => {
-    const { history, historyIndex, selectedTaskId } = get();
+    const { history, historyIndex } = get();
     if (!taskId || taskId === history[historyIndex]) return;
     
     const newHistory = history.slice(0, historyIndex + 1);
