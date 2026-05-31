@@ -64,6 +64,9 @@ export default function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateStepModalOpen, setIsCreateStepModalOpen] = useState(false);
   const [isImportConfirmModalOpen, setIsImportConfirmModalOpen] = useState(false);
+  const [pendingPasteFile, setPendingPasteFile] = useState<File | null>(null);
+  const [isPasteModalOpen, setIsPasteModalOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
   const [newTaskType, setNewTaskType] = useState<TaskType>('流程');
   const { taskNotes, setTaskNote } = useTaskStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -118,38 +121,36 @@ export default function App() {
     }
   };
 
-  const confirmImport = () => {
+  const confirmImport = async () => {
     setIsImportConfirmModalOpen(false);
-    fileInputRef.current?.click();
+    if (pendingPasteFile) {
+      await useTaskStore.getState().importTasks(pendingPasteFile);
+      setPendingPasteFile(null);
+    } else {
+      fileInputRef.current?.click();
+    }
   };
 
   const cancelImport = () => {
     setIsImportConfirmModalOpen(false);
+    setPendingPasteFile(null);
   };
 
+
   const handleRunTask = async () => {
-    if (!selectedTaskId) return;
-
-    const task = tasks.find(t => t.id === selectedTaskId);
-    if (!task) return;
-
-    const steps = taskSteps[selectedTaskId] || [];
-    const note = taskNotes[selectedTaskId] || '';
-
-    const runData = {
-      ...task,
-      steps,
-      note
-    };
-
     try {
+      const res = await fetch('/api/export');
+      const allTasksData = await res.json();
+      
       await fetch('/api/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(runData)
+        body: JSON.stringify(allTasksData)
       });
+      alert(t('buttons.run_task') + ' 成功' );
     } catch (e) {
       console.error("Failed to run task:", e);
+      alert(t('buttons.run_task') + ' 失败' );
     }
   };
 
@@ -168,22 +169,42 @@ export default function App() {
 
   const handlePasteTasks = async () => {
     try {
-      const text = await navigator.clipboard.readText();
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text) {
+            processPasteText(text);
+            return;
+          }
+        } catch (e) {
+          console.warn('Clipboard read error, falling back to modal', e);
+        }
+      }
+      setIsPasteModalOpen(true);
+      setPasteText('');
+    } catch (e) {
+      setIsPasteModalOpen(true);
+      setPasteText('');
+    }
+  };
+
+  const processPasteText = async (text: string) => {
+    try {
       const json = JSON.parse(text);
       if (Array.isArray(json)) {
         const file = new File([text], 'clipboard.json', { type: 'application/json' });
         if (tasks.length > 0) {
-          setPendingImportFile(file);
+          setPendingPasteFile(file);
           setIsImportConfirmModalOpen(true);
         } else {
           await useTaskStore.getState().importTasks(file);
         }
+        setIsPasteModalOpen(false);
       } else {
-        alert('粘贴板内容格式不正确');
+        alert('粘贴板内容格式不正确，期望是一个数组');
       }
     } catch (e) {
-      console.error('Failed to paste tasks:', e);
-      alert('无法读取粘贴板或格式不正确');
+      alert('粘贴板内容非法的 JSON 数据');
     }
   };
 
@@ -257,9 +278,8 @@ export default function App() {
           }} />
 
           <button 
-            className={`flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-semibold transition-colors ${!selectedTaskId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/20'}`}
+            className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-semibold hover:bg-primary/20 transition-colors"
             onClick={handleRunTask}
-            disabled={!selectedTaskId}
           >
             <Play size={18} />
             <span>{t('buttons.run_task')}</span>
@@ -514,6 +534,35 @@ export default function App() {
                 onClick={confirmImport}
               >
                 确定导入
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isPasteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface p-6 rounded-2xl w-full max-w-lg border border-outline-variant/20 shadow-xl">
+            <h3 className="text-xl font-bold text-on-surface mb-4">粘贴 JSON 导入</h3>
+            <textarea
+              className="w-full h-64 p-3 bg-surface-container text-on-surface rounded-xl border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary outline-none font-mono text-sm custom-scrollbar resize-none mb-6"
+              placeholder="在此粘贴任务数据的 JSON..."
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+            />
+            <div className="flex justify-end gap-3">
+              <button 
+                className="px-4 py-2 text-on-surface-variant hover:bg-surface-container rounded-lg font-medium transition-colors"
+                onClick={() => setIsPasteModalOpen(false)}
+              >
+                取消
+              </button>
+              <button 
+                className="px-4 py-2 bg-primary text-on-primary rounded-lg font-medium shadow-md shadow-primary/20 hover:bg-primary/90 hover:shadow-lg hover:-translate-y-px transition-all disabled:opacity-50"
+                disabled={!pasteText.trim()}
+                onClick={() => processPasteText(pasteText)}
+              >
+                导入
               </button>
             </div>
           </div>
