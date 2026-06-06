@@ -143,9 +143,9 @@ export default function App() {
 
     const handleCopyTasks = async () => {
         try {
-            const { projectId } = useTaskStore.getState();
-            // Export ALL tasks (full project), same as "另存为"
-            const res = await fetch(`/api/export?${new URLSearchParams({ projectId })}`);
+            const { projectId, selectedTaskId: sid } = useTaskStore.getState();
+            if (!sid) return alert("请先选择一个任务");
+            const res = await fetch(`/api/export?${new URLSearchParams({ projectId, taskId: sid })}`);
             const data = await res.json();
             await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
             alert(t("buttons.copy_tasks") + " 成功");
