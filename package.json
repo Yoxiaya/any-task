@@ -8,7 +8,9 @@
     "build": "vite build && esbuild src/node/server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css}\""
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -30,6 +32,7 @@
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.0",
+    "prettier": "^3.8.3",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
