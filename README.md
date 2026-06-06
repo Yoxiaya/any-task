@@ -1,114 +1,147 @@
-# Any-Task
+# Any Task
 
-基于 Express + Vite 构建的任务管理全栈（前端 React，后端 Node.js）应用。
+基于 Express + Vite + React 的任务流程管理应用，支持多项目、多 Tab、数据导入导出。
+
+## 技术栈
+
+- **前端**: React 19 + Zustand + Tailwind CSS + Motion + i18next
+- **后端**: Node.js + Express + tsx（热重载）
+- **构建**: Vite + esbuild
+- **数据**: 本地 JSON 文件存储
 
 ## 目录结构
 
-系统代码主要划分为前后端两部分：
-- `src/web/` - 前端 React 相关的组件、页面、Hooks、Store 和类型定义等。
-- `src/node/` - 后端 Node.js (Express) 服务相关代码。
-- `data/` - 后端任务数据 JSON 存储目录。
-
-## 数据结构与核心模型
-
-本系统中的核心任务数据结构及相关数据类型基于 TypeScript 接口定义。
-
-### 1. 任务 (Task)
-
-`Task` 是系统中表示独立工作单元的基本结构。
-
-```typescript
-interface Task {
-  id: string;          // 任务唯一标识，例如：'T-1001', 'P-1002'等
-  name: string;        // 任务名称
-  type: TaskType;      // 任务类型
-  scheduledConfig?: {  // 定时配置项（通常在 type 为 '定时' 时存在）
-    mode: 'open' | 'close' | 'close_all'; // 定时模式：开启(open)、关闭(close)、全部关闭(close_all)
-    cycle: number;                        // 周期或延迟时间（单位：秒）
-    targetTaskId?: string;                // 该定时任务所关联的目标任务 ID
-  };
-}
 ```
-
-**任务类型 (TaskType)**:
-
-目前支持三种类别任务，用字符串字面量联合类型表示：
-```typescript
-type TaskType = '顶级' | '流程' | '定时';
+├── src/
+│   ├── web/                  # 前端
+│   │   ├── components/       # 组件
+│   │   ├── hooks/            # 自定义 hooks
+│   │   ├── store/            # Zustand 状态管理
+│   │   ├── locales/          # i18n 翻译（中/英）
+│   │   ├── types.ts          # 类型定义
+│   │   └── utils.ts          # 工具函数
+│   └── node/
+│       ├── server.ts         # Express 入口
+│       ├── routes/           # 路由定义
+│       └── services/         # 数据访问层
+├── data/
+│   ├── projects.json         # 项目元数据
+│   └── projects/<id>/db.json # 各项目任务数据
+├── app-config.json           # 应用配置（可提交 git）
+└── example.md                # 导出数据格式示例
 ```
-
-- **顶级任务**: 固定为业务链条的起点，默认置顶排列。
-- **流程任务**: 包含明确拆分子步骤（`TaskStep`）的常规任务。
-- **定时任务**: 附有生命周期设定、执行间隔触发规则的特殊任务。
-
-### 2. 任务步骤/子项 (TaskStep)
-
-左侧任务目录中的任务主要通过此结构来关联和体现它的子操作流程：
-
-```typescript
-interface TaskStep {
-  id: string;          // 步骤的顺序 ID 标识，如 '01', '02'
-  _uid?: string;       // 步骤在系统前端用于内部渲染和拖拽排序的唯一标识
-  category: string;    // 该步骤所引用任务的分类/类型 ('流程', '定时', '逻辑'等)
-  name: string;        // 该步骤引用的任务具体名称
-  successJump: string; // 成功时跳转的目标步骤 ID 或者指令
-  failureJump: string; // 失败时跳转的目标步骤 ID 或者指令
-  failureTip: string;  // 失败时显示的提示信息文本
-}
-```
-
-### 3. 完整的任务导出结构 (ExportData)
-
-由于任务与步骤在后端数据或前端状态 `store` 中被拆分管理，在用户执行导出功能时会自动生成一棵嵌套的数据树：
-
-```typescript
-interface ExportedTask extends Task {
-  steps: TaskStep[]; 
-}
-type ExportData = ExportedTask[];
-```
-
----
 
 ## 快速开始
 
-### 依赖与运行
-
 ```bash
-# 安装依赖
 npm install
-
-# 仅编译接口类型
-npm run lint
-
-# 启动开发模式 (同时启动 前端vite 和 express 热重载)
-npm run dev
-
-# 编译生成生产代码 (产出在 dist/ 目录)
-npm run build
-
-# 生产环境运行
-npm start
+npm run dev        # 启动开发模式 → http://localhost:3000
+npm run build      # 生产构建
+npm start          # 生产运行
+npm run format     # Prettier 格式化
 ```
 
-服务启动后访问: `http://localhost:3000`
+## 核心概念
 
----
+### 任务类型 (`TaskType`)
 
-## 后端 API 接口文档
+```typescript
+type TaskType = "流程" | "定时";
+```
 
-### 基础路径
+- **流程任务**: 包含子步骤（`TaskStep`）的常规任务
+- **定时任务**: 具有定时配置（周期、目标）的特殊任务
+- **根任务**: 项目入口任务，由 `db.rootTaskId` 标识，左侧列表置顶蓝色高亮
 
-`http://localhost:3000/api`
+### 项目 (`Project`)
 
-### 接口列表
+```typescript
+interface Project {
+    id: string;       // 自动生成，如 "proj-abc123"
+    name: string;     // 项目名称
+    createdAt: string; // 创建时间
+}
+```
 
-| HTTP方法 | 接口路径           | 功能描述                     |
-| -------- | ------------------ | ---------------------------- |
-| GET      | `/tasks`           | 获取所有任务列表             |
-| GET      | `/tasks/:id`       | 获取单个任务详情             |
-| GET      | `/tasks/:id/steps` | 获取任务的子步骤列表         |
-| GET      | `/tasks/:id/note`  | 获取任务备注                 |
-| GET      | `/export`          | 导出完整任务数据（嵌套结构） |
+每个项目有独立的 `data/projects/<id>/db.json`，包含 `rootTaskId`、`tasks`、`steps`、`notes`。
 
-*(详细响应体结构对应上述定义的模型结构。)*
+### 任务步骤 (`TaskStep`)
+
+```typescript
+interface TaskStep {
+    id: string;        // 序号，如 "01"
+    category: string;  // 引用的任务分类
+    name: string;      // 引用的任务名
+    successJump: string; // 成功跳转
+    failureJump: string; // 失败跳转
+    failureTip: string;  // 失败提示
+}
+```
+
+## 导出数据格式 (`/api/export`)
+
+```json
+{
+    "rootTaskId": "T-1001",
+    "exportedAt": "2026-01-01T00:00:00.000Z",
+    "tasks": [
+        {
+            "id": "T-1001",
+            "name": "顶级任务",
+            "type": "流程",
+            "steps": [...],
+            "note": ""
+        }
+    ]
+}
+```
+
+导入兼容新旧两种格式（对象含 `tasks` 字段或裸数组），同名任务覆盖、不同名合并。
+
+## 后端 API
+
+所有接口路径前缀 `/api`，除 projects 和 config 外均需 `?projectId=` 参数。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/config` | 读取应用配置 |
+| PUT | `/config` | 更新配置 `{ appName?, tabTitle? }` |
+| GET | `/projects` | 列出所有项目 |
+| POST | `/projects` | 创建项目 `{ name }` |
+| PUT | `/projects/:id` | 重命名项目 `{ name }` |
+| DELETE | `/projects/:id` | 删除项目及其数据 |
+| POST | `/projects/import` | 导入项目 `{ name, tasks }` |
+| GET | `/tasks` | 获取 `{ rootTaskId, tasks }` |
+| POST | `/tasks` | 创建任务 |
+| GET | `/tasks/:id` | 获取单个任务 |
+| PUT | `/tasks/:id` | 更新任务 |
+| DELETE | `/tasks/:id` | 删除任务 |
+| GET | `/tasks/:id/steps` | 获取步骤列表 |
+| PUT | `/tasks/:id/steps` | 更新步骤列表 |
+| GET | `/tasks/:id/note` | 获取备注 |
+| PUT | `/tasks/:id/note` | 更新备注 `{ note }` |
+| GET | `/export` | 导出数据（可选 `?taskId=`） |
+| POST | `/import` | 导入合并数据 |
+| POST | `/run` | 日志输出任务数据 |
+
+## 应用配置 (`app-config.json`)
+
+```json
+{
+    "appName": "Any Task",
+    "tabTitle": "Any Task"
+}
+```
+
+- `appName`: 首页标题
+- `tabTitle`: 浏览器标签页标题
+
+## 功能概览
+
+- **多项目管理**: 首页创建/导入项目，Tab 栏切换，刷新保持当前 Tab
+- **任务目录**: 左侧搜索、筛选，根任务蓝色置顶
+- **流程详情**: 步骤编辑、拖拽排序、右键菜单
+- **定时任务**: 周期配置、关联目标
+- **导入导出**: 自选目录、剪贴板复制、JSON 合并导入
+- **国际化**: 中/英文切换
+- **代码规范**: Prettier（4 缩进 / 120 行宽）

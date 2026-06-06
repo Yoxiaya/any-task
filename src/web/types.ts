@@ -1,4 +1,10 @@
-export type TaskType = "顶级" | "流程" | "定时";
+export interface Project {
+    id: string;
+    name: string;
+    createdAt: string;
+}
+
+export type TaskType = "流程" | "定时";
 
 export interface Task {
     id: string;

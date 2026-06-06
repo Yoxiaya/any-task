@@ -3,17 +3,20 @@ import { Task, TaskStep } from "../types";
 
 interface TaskStore {
     tasks: Task[];
+    rootTaskId: string;
     taskSteps: Record<string, TaskStep[]>;
     taskNotes: Record<string, string>;
     selectedTaskId: string;
     history: string[];
     historyIndex: number;
+    projectId: string;
 
     // Actions
     fetchTasks: () => Promise<void>;
     fetchTaskSteps: (taskId: string) => Promise<void>;
     fetchTaskNote: (taskId: string) => Promise<void>;
     fetchDataForTask: (taskId: string) => Promise<void>;
+    setProjectId: (id: string) => void;
 
     setSelectedTaskId: (id: string) => void;
     navigateToTask: (id: string) => void;
@@ -31,27 +34,60 @@ interface TaskStore {
     setTaskNote: (taskId: string, note: string) => Promise<void>;
 }
 
+const apiUrl = (path: string, projectId: string, extraParams?: Record<string, string>) => {
+    const params = new URLSearchParams({ projectId });
+    if (extraParams) {
+        Object.entries(extraParams).forEach(([k, v]) => params.append(k, v));
+    }
+    return `/api${path}?${params.toString()}`;
+};
+
 export const useTaskStore = create<TaskStore>((set, get) => ({
     tasks: [],
+    rootTaskId: "",
     taskSteps: {},
     taskNotes: {},
     selectedTaskId: "",
     history: [],
     historyIndex: 0,
+    projectId: "",
+
+    setProjectId: (id: string) => {
+        const current = get().projectId;
+        if (current === id) return;
+        set({
+            projectId: id,
+            tasks: [],
+            rootTaskId: "",
+            taskSteps: {},
+            taskNotes: {},
+            selectedTaskId: "",
+            history: [],
+            historyIndex: 0,
+        });
+        if (id) {
+            get().fetchTasks();
+        }
+    },
 
     fetchTasks: async () => {
+        const projectId = get().projectId;
+        if (!projectId) return;
         try {
-            const res = await fetch("/api/tasks");
+            const res = await fetch(apiUrl("/tasks", projectId));
             if (!res.ok) throw new Error("API Error");
             const data = await res.json();
-            set({ tasks: data });
+            const { rootTaskId = "", tasks: taskList = [] } = data;
+            set({ rootTaskId, tasks: taskList });
 
             const currentSelected = get().selectedTaskId;
-            const taskExists = data.some((t: Task) => t.id === currentSelected);
+            const taskExists = taskList.some((t: Task) => t.id === currentSelected);
 
-            if (data.length > 0) {
+            if (taskList.length > 0) {
                 if (!currentSelected || !taskExists) {
-                    get().navigateToTask(data[0].id);
+                    // Default to root task, fallback to first task
+                    const defaultId = taskList.some((t: Task) => t.id === rootTaskId) ? rootTaskId : taskList[0].id;
+                    get().navigateToTask(defaultId);
                 }
             } else {
                 set({ selectedTaskId: "" });
@@ -63,8 +99,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     fetchTaskSteps: async (taskId: string) => {
         if (!taskId) return;
+        const projectId = get().projectId;
+        if (!projectId) return;
         try {
-            const res = await fetch(`/api/tasks/${taskId}/steps`);
+            const res = await fetch(apiUrl(`/tasks/${taskId}/steps`, projectId));
             if (!res.ok) throw new Error("API Error");
             const data = await res.json();
             set((state) => ({
@@ -77,8 +115,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     fetchTaskNote: async (taskId: string) => {
         if (!taskId) return;
+        const projectId = get().projectId;
+        if (!projectId) return;
         try {
-            const res = await fetch(`/api/tasks/${taskId}/note`);
+            const res = await fetch(apiUrl(`/tasks/${taskId}/note`, projectId));
             if (!res.ok) throw new Error("API Error");
             const data = await res.json();
             set((state) => ({
@@ -136,46 +176,23 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     exportTasks: async () => {
         try {
-            const selectedTaskId = get().selectedTaskId;
-            console.log("[exportTasks] selectedTaskId:", selectedTaskId);
-            if (!selectedTaskId) {
-                console.warn("No task selected for export");
-                return;
-            }
-            const res = await fetch(`/api/export?taskId=${encodeURIComponent(selectedTaskId)}`);
-            const data = await res.json();
-            console.log("[exportTasks] exported tasks count:", data.length);
-
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `any-task-${selectedTaskId}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (e) {
-            console.error("Failed to fetch exported tasks", e);
-        }
-    },
-
-    exportTasksAs: async () => {
-        try {
+            const projectId = get().projectId;
+            if (!projectId) return;
             const selectedTaskId = get().selectedTaskId;
             if (!selectedTaskId) {
                 console.warn("No task selected for export");
                 return;
             }
-            const res = await fetch(`/api/export?taskId=${encodeURIComponent(selectedTaskId)}`);
+            const res = await fetch(apiUrl("/export", projectId, { taskId: selectedTaskId }));
             const data = await res.json();
 
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const suggestedName = `any-task-${selectedTaskId}.json`;
 
             if ("showSaveFilePicker" in window) {
                 try {
                     const handle = await (window as any).showSaveFilePicker({
-                        suggestedName: "any-task-export.json",
+                        suggestedName,
                         types: [
                             {
                                 description: "JSON File",
@@ -199,7 +216,54 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "any-task-export.json";
+            a.download = suggestedName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error("Failed to fetch exported tasks", e);
+        }
+    },
+
+    exportTasksAs: async () => {
+        try {
+            const projectId = get().projectId;
+            if (!projectId) return;
+            // Export ALL tasks in the project (no taskId filter)
+            const res = await fetch(apiUrl("/export", projectId));
+            const data = await res.json();
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+
+            if ("showSaveFilePicker" in window) {
+                try {
+                    const handle = await (window as any).showSaveFilePicker({
+                        suggestedName: "any-task-all.json",
+                        types: [
+                            {
+                                description: "JSON File",
+                                accept: { "application/json": [".json"] },
+                            },
+                        ],
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    return;
+                } catch (err: any) {
+                    if (err.name !== "AbortError") {
+                        console.error("Failed to save file using picker", err);
+                    }
+                    return;
+                }
+            }
+
+            // Fallback
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "any-task-all.json";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -211,9 +275,11 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     importTasks: async (file: File) => {
         try {
+            const projectId = get().projectId;
+            if (!projectId) return;
             const text = await file.text();
             const importedData = JSON.parse(text);
-            const res = await fetch("/api/import", {
+            const res = await fetch(apiUrl("/import", projectId), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(importedData),
@@ -233,8 +299,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     addTask: async (task) => {
         try {
+            const projectId = get().projectId;
+            if (!projectId) return;
             set((state) => ({ tasks: [task, ...state.tasks] }));
-            await fetch("/api/tasks", {
+            await fetch(apiUrl("/tasks", projectId), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(task),
@@ -246,8 +314,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     updateTask: async (task) => {
         try {
+            const projectId = get().projectId;
+            if (!projectId) return;
             set((state) => ({ tasks: state.tasks.map((t) => (t.id === task.id ? task : t)) }));
-            await fetch(`/api/tasks/${task.id}`, {
+            await fetch(apiUrl(`/tasks/${task.id}`, projectId), {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(task),
@@ -259,8 +329,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     deleteTask: async (taskId) => {
         try {
+            const projectId = get().projectId;
+            if (!projectId) return;
             set((state) => ({ tasks: state.tasks.filter((t) => t.id !== taskId) }));
-            await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+            await fetch(apiUrl(`/tasks/${taskId}`, projectId), { method: "DELETE" });
         } catch (e) {
             console.error("Failed to delete task", e);
         }
@@ -268,10 +340,12 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     setTaskSteps: async (taskId, steps) => {
         try {
+            const projectId = get().projectId;
+            if (!projectId) return;
             set((state) => ({
                 taskSteps: { ...state.taskSteps, [taskId]: steps },
             }));
-            await fetch(`/api/tasks/${taskId}/steps`, {
+            await fetch(apiUrl(`/tasks/${taskId}/steps`, projectId), {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(steps),
@@ -283,10 +357,12 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     setTaskNote: async (taskId, note) => {
         try {
+            const projectId = get().projectId;
+            if (!projectId) return;
             set((state) => ({
                 taskNotes: { ...state.taskNotes, [taskId]: note },
             }));
-            await fetch(`/api/tasks/${taskId}/note`, {
+            await fetch(apiUrl(`/tasks/${taskId}/note`, projectId), {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ note }),

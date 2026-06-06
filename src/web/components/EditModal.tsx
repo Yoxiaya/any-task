@@ -18,8 +18,6 @@ export default function EditModal({ isOpen, onClose, step, onSave }: EditModalPr
 
     const getCategoryLabel = (category: string) => {
         switch (category) {
-            case "顶级":
-                return t("task_type.top_level");
             case "流程":
                 return t("task_type.process");
             case "定时":
@@ -52,13 +50,15 @@ export default function EditModal({ isOpen, onClose, step, onSave }: EditModalPr
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        className="absolute inset-0 bg-black/40"
                     />
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
                         className="relative w-full max-w-xl bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden"
                     >
                         <div className="px-8 py-6 flex items-center justify-between">

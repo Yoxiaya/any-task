@@ -15,8 +15,7 @@ export default function TopLevelTaskDetail({ selectedTask }: TopLevelTaskDetailP
                     {selectedTask.name} <span className="text-primary text-lg ml-2">#{selectedTask.id}</span>
                 </h1>
                 <p className="text-on-surface-variant max-w-2xl">
-                    这是顶级任务的概览视图。顶级任务通常用于定义系统架构的核心组件或全局策略。
-                    您可以在此处查看该任务的健康状态、安全合规性以及执行效率。
+                    这是根任务的概览视图。作为流程入口，您可以在此查看整体状态、安全合规性以及执行效率。
                 </p>
             </div>
 

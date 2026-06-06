@@ -16,8 +16,6 @@ export default function CreateStepModal({ isOpen, onClose, onConfirm }: CreateSt
 
     const getCategoryLabel = (category: string) => {
         switch (category) {
-            case "顶级":
-                return t("task_type.top_level");
             case "流程":
                 return t("task_type.process");
             case "定时":
@@ -58,13 +56,15 @@ export default function CreateStepModal({ isOpen, onClose, onConfirm }: CreateSt
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        className="absolute inset-0 bg-black/40"
                     />
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
                         className="relative w-full max-w-xl bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden"
                     >
                         <div className="px-8 py-6 flex items-center justify-between border-b border-outline-variant/10">
@@ -103,7 +103,7 @@ export default function CreateStepModal({ isOpen, onClose, onConfirm }: CreateSt
                                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                             className="w-full appearance-none px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-none focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm font-medium pr-10"
                                         >
-                                            {["顶级", "流程", "定时", "-"].map((key) => (
+                                            {["流程", "定时", "-"].map((key) => (
                                                 <option key={key} value={key}>
                                                     {getCategoryLabel(key)}
                                                 </option>

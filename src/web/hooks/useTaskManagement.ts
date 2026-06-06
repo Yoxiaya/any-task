@@ -66,7 +66,7 @@ export function useTaskManagement() {
                 const step = (taskSteps[taskId] || []).find((s) => s.id === stepId);
                 const category = updates.category || (step?.category ?? "-");
                 let newTaskType: TaskType = "流程";
-                if (category === "顶级" || category === "流程" || category === "定时") {
+                if (category === "流程" || category === "定时") {
                     newTaskType = category as TaskType;
                 }
                 const newId = generateNextTaskId(newTasks, newTaskType);

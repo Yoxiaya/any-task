@@ -8,7 +8,7 @@ export const extractIdNumber = (id: string, defaultVal: number): number => {
 
 // Generate next id like 'P-1002'
 export const generateNextTaskId = (tasks: Task[], type: TaskType, defaultStart: number = 2000): string => {
-    const prefix = type === "流程" ? "P" : type === "定时" ? "S" : "T";
+    const prefix = type === "定时" ? "S" : "P";
     const maxIdNum = tasks.reduce((max, t) => Math.max(max, extractIdNumber(t.id, defaultStart)), defaultStart);
     return `${prefix}-${maxIdNum + 1}`;
 };
@@ -23,8 +23,6 @@ export const generateNextStepId = (steps: TaskStep[]): string => {
 
 export const getCategoryLabel = (category: string, t: any) => {
     switch (category) {
-        case "顶级":
-            return t("task_type.top_level");
         case "流程":
             return t("task_type.process");
         case "定时":

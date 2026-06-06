@@ -1,164 +1,195 @@
 import express from "express";
-import fs from "fs";
-import path from "path";
+import {
+    migrateLegacyData,
+    readAppConfig,
+    writeAppConfig,
+    readProjects,
+    writeProjects,
+    deleteProjectDir,
+    generateProjectId,
+    defaultDb,
+    readDb,
+    writeDb,
+    buildDbFromTasks,
+    mergeTasks,
+    extractImportTasks,
+    buildExportPayload,
+} from "../services/dataService";
 
 const router = express.Router();
 
-// Database path
-const dbPath = path.join(process.cwd(), "data", "db.json");
+// Run migration on startup
+migrateLegacyData();
 
-// Helper to read DB
-const readDb = () => {
-    const defaultDb = {
-        tasks: [{ id: "T-1001", name: "顶级任务", type: "流程" }],
-        steps: { "T-1001": [] },
-        notes: {},
-    };
-    try {
-        if (fs.existsSync(dbPath)) {
-            const data = fs.readFileSync(dbPath, "utf-8");
-            if (!data.trim()) return defaultDb;
-            return JSON.parse(data);
-        }
-    } catch (e) {
-        console.error("Error reading db.json:", e);
-    }
-    return defaultDb;
-};
+// Helper
+const getProjectId = (req: express.Request): string => (req.query.projectId as string) || "";
 
-const writeDb = (db: any) => {
-    try {
-        fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-        fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), "utf-8");
-    } catch (e) {
-        console.error("Error writing db.json:", e);
-    }
-};
+// ─── Config ───
 
-// API Routes
-router.get("/tasks", (_req, res) => {
-    const db = readDb();
-    res.json(db.tasks);
+router.get("/config", (_req, res) => {
+    res.json(readAppConfig());
+});
+
+router.put("/config", (req, res) => {
+    const { appName, tabTitle } = req.body;
+    const config = readAppConfig();
+    if (appName !== undefined) config.appName = appName;
+    if (tabTitle !== undefined) config.tabTitle = tabTitle;
+    writeAppConfig(config);
+    res.json(config);
+});
+
+// ─── Projects ───
+
+router.get("/projects", (_req, res) => {
+    res.json(readProjects());
+});
+
+router.post("/projects", (req, res) => {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: "项目名称不能为空" });
+
+    const project = { id: generateProjectId(), name: name.trim(), createdAt: new Date().toISOString() };
+    const projects = readProjects();
+    projects.push(project);
+    writeProjects(projects);
+    writeDb(project.id, defaultDb());
+
+    res.json(project);
+});
+
+router.put("/projects/:id", (req, res) => {
+    const { id } = req.params;
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: "项目名称不能为空" });
+
+    const projects = readProjects();
+    const project = projects.find((p: any) => p.id === id);
+    if (!project) return res.status(404).json({ error: "项目不存在" });
+
+    project.name = name.trim();
+    writeProjects(projects);
+    res.json(project);
+});
+
+router.delete("/projects/:id", (req, res) => {
+    const { id } = req.params;
+    const projects = readProjects().filter((p: any) => p.id !== id);
+    writeProjects(projects);
+    deleteProjectDir(id);
+    res.json({ success: true });
+});
+
+router.post("/projects/import", (req, res) => {
+    const { name, tasks: importedTasks } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: "项目名称不能为空" });
+
+    const project = { id: generateProjectId(), name: name.trim(), createdAt: new Date().toISOString() };
+    const projects = readProjects();
+    projects.push(project);
+    writeProjects(projects);
+
+    const db = Array.isArray(importedTasks) && importedTasks.length > 0 ? buildDbFromTasks(importedTasks) : defaultDb();
+    writeDb(project.id, db);
+
+    res.json(project);
+});
+
+// ─── Tasks ───
+
+router.get("/tasks", (req, res) => {
+    const db = readDb(getProjectId(req));
+    res.json({ rootTaskId: db.rootTaskId || "", tasks: db.tasks });
 });
 
 router.post("/tasks", (req, res) => {
-    const db = readDb();
-    const newTask = req.body;
-    db.tasks = [newTask, ...db.tasks];
-    writeDb(db);
-    res.json(newTask);
-});
-
-router.put("/tasks/:id", (req, res) => {
-    const db = readDb();
-    const index = db.tasks.findIndex((t: any) => t.id === req.params.id);
-    if (index !== -1) {
-        db.tasks[index] = { ...db.tasks[index], ...req.body };
-        writeDb(db);
-        res.json(db.tasks[index]);
-    } else {
-        res.status(404).json({ error: "任务不存在" });
-    }
-});
-
-router.delete("/tasks/:id", (req, res) => {
-    const db = readDb();
-    db.tasks = db.tasks.filter((t: any) => t.id !== req.params.id);
-    delete db.steps[req.params.id];
-    delete db.notes[req.params.id];
-    writeDb(db);
-    res.json({ success: true });
+    const pid = getProjectId(req);
+    const db = readDb(pid);
+    db.tasks = [req.body, ...db.tasks];
+    writeDb(pid, db);
+    res.json(req.body);
 });
 
 router.get("/tasks/:id", (req, res) => {
-    const db = readDb();
+    const db = readDb(getProjectId(req));
     const task = db.tasks.find((t: any) => t.id === req.params.id);
-    if (task) {
-        res.json(task);
-    } else {
-        res.status(404).json({ error: "任务不存在" });
-    }
+    task ? res.json(task) : res.status(404).json({ error: "任务不存在" });
 });
 
+router.put("/tasks/:id", (req, res) => {
+    const db = readDb(getProjectId(req));
+    const idx = db.tasks.findIndex((t: any) => t.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: "任务不存在" });
+    db.tasks[idx] = { ...db.tasks[idx], ...req.body };
+    writeDb(getProjectId(req), db);
+    res.json(db.tasks[idx]);
+});
+
+router.delete("/tasks/:id", (req, res) => {
+    const pid = getProjectId(req);
+    const db = readDb(pid);
+    db.tasks = db.tasks.filter((t: any) => t.id !== req.params.id);
+    delete db.steps[req.params.id];
+    delete db.notes[req.params.id];
+    writeDb(pid, db);
+    res.json({ success: true });
+});
+
+// ─── Steps ───
+
 router.get("/tasks/:id/steps", (req, res) => {
-    const db = readDb();
-    const steps = (db.steps && db.steps[req.params.id]) || [];
-    res.json(steps);
+    const db = readDb(getProjectId(req));
+    res.json((db.steps && db.steps[req.params.id]) || []);
 });
 
 router.put("/tasks/:id/steps", (req, res) => {
-    const db = readDb();
+    const pid = getProjectId(req);
+    const db = readDb(pid);
     if (!db.steps) db.steps = {};
     db.steps[req.params.id] = req.body;
-    writeDb(db);
+    writeDb(pid, db);
     res.json(db.steps[req.params.id]);
 });
 
+// ─── Notes ───
+
 router.get("/tasks/:id/note", (req, res) => {
-    const db = readDb();
-    const note = db.notes && db.notes[req.params.id];
-    if (note) {
-        res.json({ taskId: req.params.id, note });
-    } else {
-        res.json({ taskId: req.params.id, note: "" }); // Return empty string if not found
-    }
+    const db = readDb(getProjectId(req));
+    const note = db.notes?.[req.params.id];
+    res.json({ taskId: req.params.id, note: note || "" });
 });
 
 router.put("/tasks/:id/note", (req, res) => {
-    const db = readDb();
+    const pid = getProjectId(req);
+    const db = readDb(pid);
     if (!db.notes) db.notes = {};
     db.notes[req.params.id] = req.body.note;
-    writeDb(db);
+    writeDb(pid, db);
     res.json({ taskId: req.params.id, note: db.notes[req.params.id] });
 });
 
+// ─── Export / Import ───
+
 router.get("/export", (req, res) => {
-    const db = readDb();
+    const pid = getProjectId(req);
+    const db = readDb(pid);
     const taskId = req.query.taskId as string | undefined;
-    console.log("[GET /api/export] taskId:", taskId, "| db.tasks count:", db.tasks.length);
-
-    let tasksToExport = db.tasks;
-    if (taskId) {
-        tasksToExport = db.tasks.filter((t: any) => t.id === taskId);
-    }
-    console.log("[GET /api/export] filtered count:", tasksToExport.length);
-
-    const exportedTasks = tasksToExport.map((task: any) => ({
-        ...task,
-        steps: (db.steps && db.steps[task.id]) || [],
-        note: (db.notes && db.notes[task.id]) || "",
-    }));
-    res.json(exportedTasks);
+    console.log("[GET /api/export] projectId:", pid, "taskId:", taskId);
+    res.json(buildExportPayload(db, taskId));
 });
 
 router.post("/import", (req, res) => {
-    const importedTasks = req.body;
+    const pid = getProjectId(req);
+    const tasks = extractImportTasks(req.body);
+    if (!tasks) return res.status(400).json({ error: "无效的导入数据" });
 
-    if (!Array.isArray(importedTasks)) {
-        return res.status(400).json({ error: "无效的导入数据" });
-    }
-
-    const newDb = {
-        tasks: [] as any[],
-        steps: {} as any,
-        notes: {} as any,
-    };
-
-    importedTasks.forEach((importedTask: any) => {
-        const taskMeta = { ...importedTask };
-        const steps = taskMeta.steps || [];
-        const note = taskMeta.note || "";
-        delete taskMeta.steps;
-        delete taskMeta.note;
-
-        newDb.tasks.push(taskMeta);
-        newDb.steps[taskMeta.id] = steps;
-        newDb.notes[taskMeta.id] = note;
-    });
-
-    writeDb(newDb);
-    res.json({ success: true });
+    const db = readDb(pid);
+    mergeTasks(db, tasks);
+    writeDb(pid, db);
+    res.json({ merged: true });
 });
+
+// ─── Run ───
 
 router.post("/run", (req, res) => {
     console.log("---------- RUN TASK ----------");

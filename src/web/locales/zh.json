@@ -59,6 +59,26 @@
         "release_to_delete": "松开鼠标以删除",
         "task_category_name": "任务类/任务名"
     },
+    "home": {
+        "subtitle": "管理你的所有任务项目",
+        "create_project": "创建项目",
+        "import_project": "导入项目",
+        "project_list": "项目目录",
+        "empty_project_list": "暂无项目，点击左侧按钮创建"
+    },
+    "project": {
+        "create_title": "新建项目",
+        "import_title": "导入项目",
+        "import_desc": "文件包含 {{count}} 个任务，请输入项目名称。",
+        "name_placeholder": "输入项目名称",
+        "default_name": "新建项目",
+        "open": "打开项目",
+        "rename": "重命名",
+        "rename_title": "重命名项目",
+        "delete": "删除项目",
+        "delete_title": "确认删除",
+        "delete_desc": "确定要删除项目「{{name}}」吗？此操作不可撤销。"
+    },
     "modal": {
         "create_task": "新增任务",
         "task_name": "任务名称",

@@ -29,6 +29,26 @@
         "process": "Process",
         "scheduled": "Scheduled"
     },
+    "home": {
+        "subtitle": "Manage all your task projects",
+        "create_project": "Create Project",
+        "import_project": "Import Project",
+        "project_list": "Project Directory",
+        "empty_project_list": "No projects yet, create one"
+    },
+    "project": {
+        "create_title": "New Project",
+        "import_title": "Import Project",
+        "import_desc": "File contains {{count}} tasks. Enter project name.",
+        "name_placeholder": "Enter project name",
+        "default_name": "New Project",
+        "open": "Open Project",
+        "rename": "Rename",
+        "rename_title": "Rename Project",
+        "delete": "Delete Project",
+        "delete_title": "Confirm Delete",
+        "delete_desc": "Are you sure you want to delete \"{{name}}\"? This cannot be undone."
+    },
     "modal": {
         "add_task_step": "Add Task Step",
         "task_name_placeholder": "Task Name",

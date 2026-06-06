@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { X, AlertCircle } from "lucide-react";
 import { Task, TaskType } from "../types";
 
-// Force file change to trigger GitHub sync update
 interface CreateTaskModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -17,16 +16,12 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
     const [taskName, setTaskName] = useState("");
     const [error, setError] = useState<string | null>(null);
     const { t } = useTranslation();
+    const prevOpen = useRef(false);
 
     useEffect(() => {
-        if (isOpen) {
-            // Generate default name
-            let baseName =
-                taskType === "流程"
-                    ? t("modal.default_process_name")
-                    : taskType === "定时"
-                      ? t("modal.default_scheduled_name")
-                      : t("modal.default_normal_name");
+        // Only generate default name when modal transitions from closed → open
+        if (isOpen && !prevOpen.current) {
+            let baseName = taskType === "定时" ? t("modal.default_scheduled_name") : t("modal.default_process_name");
             let name = baseName;
             let counter = 1;
 
@@ -42,7 +37,8 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
             setTaskName(name);
             setError(null);
         }
-    }, [isOpen, existingTasks, taskType, t]);
+        prevOpen.current = isOpen;
+    }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleConfirm = () => {
         const trimmedName = taskName.trim();
@@ -71,13 +67,15 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
                         onClick={onClose}
-                        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        className="absolute inset-0 bg-black/40"
                     />
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
                         className="relative w-full max-w-md bg-surface-container-lowest rounded-2xl shadow-2xl overflow-hidden"
                     >
                         <div className="px-8 py-6 flex items-center justify-between border-b border-outline-variant/10">
@@ -110,19 +108,12 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
                                             : "border-transparent focus:ring-primary/20 focus:bg-surface-container-lowest focus:border-primary/30"
                                     }`}
                                 />
-                                <AnimatePresence>
-                                    {error && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: -10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -10 }}
-                                            className="flex items-center gap-1.5 text-error text-[11px] font-bold"
-                                        >
-                                            <AlertCircle size={12} />
-                                            <span>{error}</span>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                {error && (
+                                    <div className="flex items-center gap-1.5 text-error text-[11px] font-bold">
+                                        <AlertCircle size={12} />
+                                        <span>{error}</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex items-center justify-end gap-3 pt-4">

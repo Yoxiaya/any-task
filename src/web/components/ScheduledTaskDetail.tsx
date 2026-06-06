@@ -44,7 +44,7 @@ export default function ScheduledTaskDetail({ selectedTask, tasks, onSave }: Sch
         }, 500);
     };
 
-    const taskTypes: TaskType[] = ["顶级", "流程", "定时"];
+    const taskTypes: TaskType[] = ["流程", "定时"];
     const tasksByType = taskTypes.reduce(
         (acc, type) => {
             acc[type] = tasks.filter((t) => t.type === type);

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, ChevronDown, ChevronRight, LayoutTemplate, Layers, Clock, CheckSquare } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, LayoutTemplate, Layers, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { TaskType } from "../types";
 
@@ -67,13 +67,6 @@ export default function AddTaskMenu({ onAddTask }: AddTaskMenuProps) {
                                         >
                                             <Clock size={18} />
                                             <span>{t("modal.default_scheduled_name")}</span>
-                                        </button>
-                                        <button
-                                            onClick={() => handleSelect("顶级")}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors border-t border-outline-variant/10"
-                                        >
-                                            <CheckSquare size={18} />
-                                            <span>{t("modal.default_normal_name")}</span>
                                         </button>
                                     </div>
                                 </div>
