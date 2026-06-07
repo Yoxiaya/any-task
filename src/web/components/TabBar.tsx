@@ -42,7 +42,7 @@ export default function TabBar() {
                 );
             })}
 
-            {/* Add new tab button */}
+            {/* 新增标签页按钮 */}
             <button
                 onClick={() => setActiveProject(null)}
                 className="flex items-center justify-center w-7 h-7 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-primary transition-colors shrink-0"

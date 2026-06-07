@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 
-// ─── Paths ───
+// ─── 路径配置 ───
 
 const dataDir = path.join(process.cwd(), "data");
 const projectsMetaPath = path.join(dataDir, "projects.json");
@@ -12,7 +12,7 @@ const getProjectsDir = () => path.join(dataDir, "projects");
 const getProjectDbPath = (projectId: string) => path.join(getProjectsDir(), projectId, "db.json");
 const getProjectDir = (projectId: string) => path.join(getProjectsDir(), projectId);
 
-// ─── JSON helpers ───
+// ─── JSON 读写工具 ───
 
 const readJson = (filePath: string, fallback: any = null) => {
     try {
@@ -36,11 +36,11 @@ const writeJson = (filePath: string, data: any) => {
     }
 };
 
-// ─── ID generation ───
+// ─── ID 生成 ───
 
 export const generateProjectId = () => "proj-" + crypto.randomBytes(6).toString("hex");
 
-// ─── Default DB ───
+// ─── 默认数据库结构 ───
 
 export const defaultDb = () => ({
     rootTaskId: "T-1001",
@@ -49,7 +49,7 @@ export const defaultDb = () => ({
     notes: {},
 });
 
-// ─── Project DB ───
+// ─── 项目数据库读写 ───
 
 export const readDb = (projectId: string) => {
     if (!projectId) return defaultDb();
@@ -61,7 +61,7 @@ export const readDb = (projectId: string) => {
     }
     const db = readJson(dbPath, defaultDb());
 
-    // Migration: ensure rootTaskId + convert "顶级" → "流程"
+    // 数据迁移：补全 rootTaskId + 将 "顶级" 类型转换为 "流程"
     let migrated = false;
     if (!db.rootTaskId) {
         const root = db.tasks?.find((t: any) => t.type === "顶级" || t.id === "T-1001");
@@ -100,7 +100,7 @@ export const writeDb = (projectId: string, db: any) => {
     writeJson(getProjectDbPath(projectId), db);
 };
 
-// ─── Projects list ───
+// ─── 项目列表管理 ───
 
 export const readProjects = (): any[] => readJson(projectsMetaPath, []);
 
@@ -111,7 +111,7 @@ export const deleteProjectDir = (projectId: string) => {
     if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
 };
 
-// ─── Import helpers ───
+// ─── 导入辅助函数 ───
 
 export const buildDbFromTasks = (tasks: any[]) => {
     const db = { tasks: [] as any[], steps: {} as any, notes: {} as any };
@@ -157,7 +157,40 @@ export const extractImportTasks = (body: any): any[] | null => {
 
 export const buildExportPayload = (db: any, taskId?: string) => {
     let tasks = db.tasks;
-    if (taskId) tasks = tasks.filter((t: any) => t.id === taskId);
+    if (taskId) {
+        // 递归收集选中的任务及其所有引用的子任务：
+        //   1. 步骤名称 → 任务名称（流程步骤引用的子任务）
+        //   2. scheduledConfig.targetTaskId → 任务 ID（定时任务引用的目标）
+        const collectedIds = new Set<string>();
+
+        const collectReferencedTasks = (tid: string) => {
+            if (collectedIds.has(tid)) return;
+            collectedIds.add(tid);
+
+            // 收集步骤名称引用的任务
+            const taskSteps: any[] = (db.steps && db.steps[tid]) || [];
+            for (const step of taskSteps) {
+                if (step.name) {
+                    const refTask = tasks.find((t: any) => t.name === step.name && t.id !== tid);
+                    if (refTask) {
+                        collectReferencedTasks(refTask.id);
+                    }
+                }
+            }
+
+            // 收集定时任务 scheduledConfig.targetTaskId 引用的目标任务
+            const currentTask = tasks.find((t: any) => t.id === tid);
+            if (currentTask?.scheduledConfig?.targetTaskId) {
+                const targetId = currentTask.scheduledConfig.targetTaskId;
+                if (targetId && !collectedIds.has(targetId)) {
+                    collectReferencedTasks(targetId);
+                }
+            }
+        };
+
+        collectReferencedTasks(taskId);
+        tasks = tasks.filter((t: any) => collectedIds.has(t.id));
+    }
     return {
         rootTaskId: db.rootTaskId || db.tasks[0]?.id || "",
         exportedAt: new Date().toISOString(),
@@ -169,7 +202,7 @@ export const buildExportPayload = (db: any, taskId?: string) => {
     };
 };
 
-// ─── Migration ───
+// ─── 数据迁移 ───
 
 export const migrateLegacyData = () => {
     if (!fs.existsSync(legacyDbPath)) return;

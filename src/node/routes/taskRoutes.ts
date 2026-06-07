@@ -16,13 +16,13 @@ import {
 
 const router = express.Router();
 
-// Run migration on startup
+// 启动时执行数据迁移
 migrateLegacyData();
 
-// Helper
+// 辅助函数
 const getProjectId = (req: express.Request): string => (req.query.projectId as string) || "";
 
-// ─── Projects ───
+// ─── 项目管理 ───
 
 router.get("/projects", (_req, res) => {
     res.json(readProjects());
@@ -78,7 +78,7 @@ router.post("/projects/import", (req, res) => {
     res.json(project);
 });
 
-// ─── Tasks ───
+// ─── 任务管理 ───
 
 router.get("/tasks", (req, res) => {
     const db = readDb(getProjectId(req));
@@ -118,7 +118,7 @@ router.delete("/tasks/:id", (req, res) => {
     res.json({ success: true });
 });
 
-// ─── Steps ───
+// ─── 步骤管理 ───
 
 router.get("/tasks/:id/steps", (req, res) => {
     const db = readDb(getProjectId(req));
@@ -134,7 +134,7 @@ router.put("/tasks/:id/steps", (req, res) => {
     res.json(db.steps[req.params.id]);
 });
 
-// ─── Notes ───
+// ─── 备注管理 ───
 
 router.get("/tasks/:id/note", (req, res) => {
     const db = readDb(getProjectId(req));
@@ -151,7 +151,7 @@ router.put("/tasks/:id/note", (req, res) => {
     res.json({ taskId: req.params.id, note: db.notes[req.params.id] });
 });
 
-// ─── Export / Import ───
+// ─── 导入导出 ───
 
 router.get("/export", (req, res) => {
     const pid = getProjectId(req);
@@ -172,7 +172,7 @@ router.post("/import", (req, res) => {
     res.json({ merged: true });
 });
 
-// ─── Run ───
+// ─── 运行 ───
 
 router.post("/run", (req, res) => {
     console.log("---------- RUN TASK ----------");

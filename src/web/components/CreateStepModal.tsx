@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { X, ChevronDown } from "lucide-react";
 import { TaskStep } from "../types";
 
-// Force file change to trigger GitHub sync update
+
 interface CreateStepModalProps {
     isOpen: boolean;
     onClose: () => void;

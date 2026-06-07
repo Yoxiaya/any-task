@@ -11,7 +11,7 @@ interface TaskStore {
     historyIndex: number;
     projectId: string;
 
-    // Actions
+    // 操作
     fetchTasks: () => Promise<void>;
     fetchTaskSteps: (taskId: string) => Promise<void>;
     fetchTaskNote: (taskId: string) => Promise<void>;
@@ -26,7 +26,7 @@ interface TaskStore {
     exportTasksAs: () => Promise<void>;
     importTasks: (file: File) => Promise<void>;
 
-    // Modifiers
+    // 修改器
     addTask: (task: Task) => Promise<void>;
     updateTask: (task: Task) => Promise<void>;
     deleteTask: (taskId: string) => Promise<void>;
@@ -85,7 +85,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
             if (taskList.length > 0) {
                 if (!currentSelected || !taskExists) {
-                    // Default to root task, fallback to first task
+                    // 默认选中根任务，没有则选第一个任务
                     const defaultId = taskList.some((t: Task) => t.id === rootTaskId) ? rootTaskId : taskList[0].id;
                     get().navigateToTask(defaultId);
                 }
@@ -212,7 +212,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
                 }
             }
 
-            // Fallback
+            // 降级方案：使用传统下载方式
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
@@ -230,7 +230,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         try {
             const projectId = get().projectId;
             if (!projectId) return;
-            // Export ALL tasks in the project (no taskId filter)
+            // 导出项目中的所有任务（不传 taskId 过滤）
             const res = await fetch(apiUrl("/export", projectId));
             const data = await res.json();
 
@@ -259,7 +259,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
                 }
             }
 
-            // Fallback
+            // 降级方案：使用传统下载方式
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;

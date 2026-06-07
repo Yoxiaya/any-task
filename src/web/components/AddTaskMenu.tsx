@@ -4,7 +4,7 @@ import { Plus, ChevronDown, ChevronRight, LayoutTemplate, Layers, Clock } from "
 import { motion, AnimatePresence } from "motion/react";
 import { TaskType } from "../types";
 
-// Force file change to trigger GitHub sync update
+
 interface AddTaskMenuProps {
     onAddTask: (type: TaskType) => void;
 }
@@ -57,9 +57,9 @@ export default function AddTaskMenu({ onAddTask }: AddTaskMenuProps) {
                                         <ChevronRight size={14} />
                                     </div>
 
-                                    {/* Submenu */}
+                                    {/* 子菜单 */}
                                     <div className="absolute left-full top-0 w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-1 hidden group-hover/sub:block">
-                                        {/* Bridge to prevent broken touch */}
+                                        {/* 桥接区域：防止触摸事件中断 */}
                                         <div className="absolute -left-2 top-0 bottom-0 w-2 bg-transparent" />
                                         <button
                                             onClick={() => handleSelect("定时")}

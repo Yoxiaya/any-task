@@ -24,20 +24,20 @@ export default function HomePage() {
     const [importData, setImportData] = useState<any[] | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Context menu state
+    // 右键菜单状态
     const [menuProjectId, setMenuProjectId] = useState<string | null>(null);
     const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
 
-    // Rename modal state
+    // 重命名弹窗状态
     const [showRename, setShowRename] = useState(false);
     const [renameId, setRenameId] = useState("");
     const [renameName, setRenameName] = useState("");
 
-    // Delete confirm state
+    // 删除确认弹窗状态
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteId, setDeleteId] = useState("");
 
-    // Close context menu on outside click
+    // 点击外部区域关闭右键菜单
     useEffect(() => {
         if (!menuProjectId) return;
         const close = () => setMenuProjectId(null);
@@ -71,7 +71,7 @@ export default function HomePage() {
         try {
             const text = await file.text();
             const data = JSON.parse(text);
-            // Support new format ({rootTaskId, exportedAt, tasks}) and old format (bare array)
+            // 兼容新格式（{rootTaskId, exportedAt, tasks}）和旧格式（纯数组）
             let tasks: any[];
             if (Array.isArray(data)) {
                 tasks = data;
@@ -150,7 +150,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="flex gap-8 justify-center items-start">
-                    {/* Left: Create / Import Buttons */}
+                    {/* 左侧：创建 / 导入按钮 */}
                     <div className="flex flex-col gap-2.5 shrink-0 pt-1">
                         <button
                             onClick={handleCreate}
@@ -169,7 +169,7 @@ export default function HomePage() {
                         </button>
                     </div>
 
-                    {/* Right: Project Directory (always visible to prevent layout jump) */}
+                    {/* 右侧：项目目录（始终可见，防止布局抖动） */}
                     <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/20 shadow-sm w-72 overflow-hidden flex flex-col">
                         <div className="px-4 py-2.5 text-xs font-bold text-on-surface-variant uppercase tracking-wider border-b border-outline-variant/10 bg-surface-container-low shrink-0">
                             {t("home.project_list")} ({projects.length})
@@ -202,7 +202,7 @@ export default function HomePage() {
                     </div>
                 </div>
 
-                {/* Context Menu */}
+                {/* 右键菜单 */}
                 {menuProjectId && (
                     <div
                         className="fixed bg-surface-container-highest border border-outline-variant/20 rounded-xl shadow-xl py-1 z-50 overflow-hidden min-w-36"
@@ -236,7 +236,7 @@ export default function HomePage() {
 
                 <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleFileChange} />
 
-                {/* Create Project Modal */}
+                {/* 创建项目弹窗 */}
                 {showCreate && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                         <div className="bg-surface p-6 rounded-2xl w-full max-w-sm border border-outline-variant/20 shadow-xl">
@@ -269,7 +269,7 @@ export default function HomePage() {
                     </div>
                 )}
 
-                {/* Import Confirm Modal */}
+                {/* 导入确认弹窗 */}
                 {showImport && importData && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                         <div className="bg-surface p-6 rounded-2xl w-full max-w-sm border border-outline-variant/20 shadow-xl">
@@ -305,7 +305,7 @@ export default function HomePage() {
                     </div>
                 )}
 
-                {/* Rename Modal */}
+                {/* 重命名弹窗 */}
                 {showRename && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                         <div className="bg-surface p-6 rounded-2xl w-full max-w-sm border border-outline-variant/20 shadow-xl">
@@ -337,7 +337,7 @@ export default function HomePage() {
                     </div>
                 )}
 
-                {/* Delete Confirm Modal */}
+                {/* 删除确认弹窗 */}
                 {showDeleteConfirm && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                         <div className="bg-surface p-6 rounded-2xl w-full max-w-sm border border-outline-variant/20 shadow-xl">

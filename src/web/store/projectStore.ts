@@ -52,7 +52,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
             const data: Project[] = await res.json();
             const projectIds = new Set(data.map((p) => p.id));
 
-            // Clean up tabs that no longer exist
+            // 清理已不存在的项目标签页
             const { openTabIds, activeProjectId } = get();
             const validTabs = openTabIds.filter((id) => projectIds.has(id));
             const validActive = activeProjectId && projectIds.has(activeProjectId) ? activeProjectId : null;
@@ -64,7 +64,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
                 activeProjectId: validActive ?? (validTabs.length > 0 ? validTabs[0] : null),
             });
 
-            // Persist cleaned state
+            // 持久化清理后的状态
             const state = get();
             saveTabs(state.openTabIds, state.activeProjectId);
         } catch (e) {

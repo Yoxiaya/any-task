@@ -5,7 +5,7 @@ import { Task, TaskStep } from "../types";
 import { Reorder, motion } from "motion/react";
 import { getCategoryLabel } from "../utils";
 
-// Force file change to trigger GitHub sync update
+
 interface ProcessTaskDetailProps {
     selectedTask: Task;
     steps: TaskStep[];
@@ -53,7 +53,7 @@ export default function ProcessTaskDetail({
     const activeRowIndex = selectedStepId ? displaySteps.findIndex((s) => s.id === selectedStepId) : -1;
 
     const handleRowClick = (index: number) => {
-        // If clicking a static column, we want to select the row conceptually
+        // 点击静态列时从概念上选中该行
         const clickedStep = displaySteps[index];
         if (clickedStep) {
             setSelectedStepId(clickedStep.id === selectedStepId ? null : clickedStep.id);
@@ -71,10 +71,10 @@ export default function ProcessTaskDetail({
         setIsEditingName(false);
     };
 
-    // Helper to re-map content to fixed slots (ID, successJump, failureJump, failureTip)
+    // 辅助函数：将内容重新映射到固定槽位（ID、successJump、failureJump、failureTip）
     const applyFixedSlots = (newContentOrder: TaskStep[], baseSlots: TaskStep[]): TaskStep[] => {
         return newContentOrder.map((content, idx) => ({
-            ...baseSlots[idx], // Keep ID, successJump, etc. from the physical slot
+            ...baseSlots[idx], // 保留物理槽位的 ID、successJump 等字段
             category: content.category,
             name: content.name,
             _uid: content._uid,
@@ -96,7 +96,7 @@ export default function ProcessTaskDetail({
         };
     }, []);
 
-    // Reset selection and preview when task changes
+    // 任务切换时重置选中状态和预览
     useEffect(() => {
         setSelectedStepId(null);
         setIsEditingName(false);
@@ -115,7 +115,7 @@ export default function ProcessTaskDetail({
     const handleSave = () => {
         setSaveStatus("saving");
         console.log(steps);
-        // Simulate API call
+        // 模拟 API 调用
         setTimeout(() => {
             setSaveStatus("saved");
             setSelectedStepId(null);
@@ -139,7 +139,7 @@ export default function ProcessTaskDetail({
         if (isShift) {
             setTargetIndex(index);
             targetIndexRef.current = index;
-            setPreviewSteps(null); // Keep items static visually during Shift-drag
+            setPreviewSteps(null); // Shift 拖拽时保持项目视觉上静止
         } else {
             setPreviewSteps([...steps]);
             setTargetIndex(-1);
@@ -179,7 +179,7 @@ export default function ProcessTaskDetail({
             return;
         }
 
-        // Handle Modifier Keys
+        // 处理修饰键
         const isCtrl = event.ctrlKey || event.metaKey;
 
         if (wasShift) {
@@ -191,8 +191,8 @@ export default function ProcessTaskDetail({
                 const stepOld = originalSteps[oldIndex];
                 const stepNew = originalSteps[newIndex];
 
-                // Core fix: Only swap identity fields (Category, Name)
-                // Keep slot fields (id, successJump, failureJump, failureTip) at their original physical indices
+                // 核心修复：仅交换身份字段（Category、Name）
+                // 保留槽位字段（id、successJump、failureJump、failureTip）在其原始物理索引位置
                 finalSteps[oldIndex] = {
                     ...stepOld,
                     category: stepNew.category,
@@ -213,7 +213,7 @@ export default function ProcessTaskDetail({
         }
 
         if (isCtrl) {
-            // Reordered list (entire items)
+            // 重新排序后的列表（整个项）
             const reorderedItems = currentPreviewSteps || steps;
             const newIndex = reorderedItems.findIndex((s) => s.id === stepId);
             const oldIndex = originalSteps.findIndex((s) => s.id === stepId);
@@ -227,46 +227,45 @@ export default function ProcessTaskDetail({
                 const sourceData = originalSteps[oldIndex];
                 const copy = { ...sourceData, id: newId, _uid: Math.random().toString(36).substr(2, 9) };
 
-                // 1. First reorder the content of existing steps
+                // 1. 先重新排序现有步骤的内容
                 const contentOrder = reorderedItems.map((item) => ({ ...item }));
 
-                // 2. Insert the copy into contentOrder
+                // 2. 将副本插入 contentOrder
                 contentOrder.splice(newIndex, 0, copy);
 
-                // 3. To maintain slots for standard reorder + copy:
-                // This is tricky because we added a new step.
-                // Usually copy adds a new row, so it gets a new slot.
-                // We just need to make sure existing rows keep their successJump etc at their OLD indices?
-                // Actually, if we add a row, it shifts slots below it.
-                // For simplicity with 'Slot Fixation', the most logical interpretation is:
-                // Reordering re-maps categories/names. Adding a step adds a new slot at the end?
-                // Or shifts slots? User said '序号...不交换'.
-                // If we insert a step at index 3, row 3 becomes index 4.
-                // Let's assume standard behavior for insert: the new item gets its own data.
+                // 3. 为标准重排+复制维护槽位：
+                // 这比较棘手，因为我们新增了一个步骤。
+                // 通常复制会添加新行，因此获得新槽位。
+                // 我们需要确保现有行的 successJump 等保留在旧索引位置。
+                // 实际上如果添加一行，下面的槽位会移位。
+                // 为简化"槽位固定"逻辑，最合理的解释是：
+                // 重排会重新映射类别/名称，添加步骤在末尾新增槽位。
+                // 如果在索引 3 处插入步骤，第 3 行会变成第 4 行。
+                // 假设插入的标准行为：新项获得自己的数据。
 
-                onReorderSteps(contentOrder); // For copy, we just move items since it's a structural change
+                onReorderSteps(contentOrder); // 复制时直接移动项，因为这是结构变更
                 return;
             }
         }
 
-        // Standard reorder
+        // 标准重排
         if (currentPreviewSteps) {
-            // Apply Slot Fixation: Categories and Names move with reordering,
-            // but ID, Jumps, and Tips stay assigned to the index.
+            // 应用槽位固定：类别和名称随重排移动，
+            // 但 ID、跳转和提示保持分配给索引。
             const finalSteps = applyFixedSlots(currentPreviewSteps, originalSteps);
             onReorderSteps(finalSteps);
         }
     };
 
     const handleDrag = (event: any, info: any) => {
-        // 1. Check Shift state dynamically in case pressed during drag
+        // 1. 动态检测 Shift 键状态，处理拖拽中途按键的情况
         let currentShift = isShiftPressed.current;
         if (event && "shiftKey" in event) {
             currentShift = event.shiftKey;
             isShiftPressed.current = currentShift;
         }
 
-        // Handle shift state transitions during drag
+        // 处理拖拽过程中的 Shift 状态切换
         if (currentShift !== isShiftDragRef.current) {
             isShiftDragRef.current = currentShift;
             setIsShiftDrag(currentShift);
@@ -290,7 +289,7 @@ export default function ProcessTaskDetail({
         }
 
         if (isShiftDragRef.current) {
-            // Use document.elementsFromPoint which handles overlap perfectly
+            // 使用 document.elementsFromPoint 完美处理元素重叠
             const elementsAtPoint = document.elementsFromPoint(clientX, clientY);
 
             for (const el of elementsAtPoint) {
@@ -308,7 +307,7 @@ export default function ProcessTaskDetail({
                                 return prev;
                             });
                         }
-                        break; // Found the top-most target row
+                        break; // 找到最顶层目标行
                     }
                 }
             }
@@ -317,7 +316,7 @@ export default function ProcessTaskDetail({
 
     return (
         <section className="flex-1 bg-background overflow-hidden p-8 flex flex-col gap-6 animate-in fade-in duration-500">
-            {/* Task Notes Area */}
+            {/* 任务备注区域 */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
                     <label className="text-sm font-bold text-on-surface-variant uppercase tracking-wider">
@@ -337,7 +336,7 @@ export default function ProcessTaskDetail({
                 />
             </div>
 
-            {/* Header Actions */}
+            {/* 头部操作按钮 */}
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => setIsEditingName(true)}
@@ -382,7 +381,7 @@ export default function ProcessTaskDetail({
                     </span>
                 </button>
 
-                {/* Delete Zone */}
+                {/* 拖拽删除区域 */}
                 <div
                     ref={deleteZoneRef}
                     className={`h-12 flex-1 rounded-xl border-2 border-dashed flex items-center justify-center gap-3 transition-all duration-300 ${
@@ -404,7 +403,7 @@ export default function ProcessTaskDetail({
             >
                 <div className="overflow-y-auto overflow-x-auto custom-scrollbar flex-1 relative">
                     <div className="flex flex-row w-full min-w-[900px]">
-                        {/* COLUMN 1: ID (Static) */}
+                        {/* 第1列：序号（静态） */}
                         <div className="flex flex-col w-[8%] shrink-0 relative">
                             <div className="h-16 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[12px] font-bold text-on-surface-variant uppercase tracking-widest">
                                 {t("common.step_id")}
@@ -432,7 +431,7 @@ export default function ProcessTaskDetail({
                             })}
                         </div>
 
-                        {/* COLUMN 2: Task Category/Name (Draggable via Reorder.Group) */}
+                        {/* 第2列：任务类/任务名（通过 Reorder.Group 拖拽排序） */}
                         <div className="flex flex-col w-[40%] shrink-0 border-x border-outline-variant/10 relative">
                             <div className="h-16 flex items-center px-4 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[12px] font-bold text-on-surface-variant uppercase tracking-widest">
                                 {t("process.task_category_name")}
@@ -518,7 +517,7 @@ export default function ProcessTaskDetail({
                             </Reorder.Group>
                         </div>
 
-                        {/* COLUMN 3: Success Jump (Static) */}
+                        {/* 第3列：成功跳转（静态） */}
                         <div className="flex flex-col w-[12%] shrink-0 relative">
                             <div className="h-16 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[12px] font-bold text-on-surface-variant uppercase tracking-widest">
                                 {t("common.success_jump")}
@@ -553,7 +552,7 @@ export default function ProcessTaskDetail({
                             })}
                         </div>
 
-                        {/* COLUMN 4: Failure Jump (Static) */}
+                        {/* 第4列：失败跳转（静态） */}
                         <div className="flex flex-col w-[12%] shrink-0 relative">
                             <div className="h-16 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[12px] font-bold text-on-surface-variant uppercase tracking-widest">
                                 {t("common.failure_jump")}
@@ -588,7 +587,7 @@ export default function ProcessTaskDetail({
                             })}
                         </div>
 
-                        {/* COLUMN 5: Failure Tip (Static) */}
+                        {/* 第5列：失败提示（静态） */}
                         <div className="flex flex-col w-[28%] shrink-0 relative">
                             <div className="h-16 flex items-center px-6 bg-surface-container-high border-b border-outline-variant/20 sticky top-0 z-20 text-[12px] font-bold text-on-surface-variant uppercase tracking-widest">
                                 {t("common.failure_tip")}

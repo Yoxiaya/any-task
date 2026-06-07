@@ -1,12 +1,12 @@
 import { Task, TaskStep, TaskType } from "./types";
 
-// Extract number from id like 'P-1001' -> 1001
+// 从 ID 中提取数字，如 'P-1001' → 1001
 export const extractIdNumber = (id: string, defaultVal: number): number => {
     const num = parseInt(id.split("-")[1], 10);
     return isNaN(num) ? defaultVal : num;
 };
 
-// Generate next id like 'P-1002'
+// 生成下一个 ID，如 'P-1002'
 export const generateNextTaskId = (tasks: Task[], type: TaskType, defaultStart: number = 2000): string => {
     const prefix = type === "定时" ? "S" : "P";
     const maxIdNum = tasks.reduce((max, t) => Math.max(max, extractIdNumber(t.id, defaultStart)), defaultStart);

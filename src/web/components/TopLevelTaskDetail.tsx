@@ -2,7 +2,7 @@ import React from "react";
 import { Task } from "../types";
 import { Activity, ShieldCheck, Zap, BarChart3 } from "lucide-react";
 
-// Force file change to trigger GitHub sync update
+
 interface TopLevelTaskDetailProps {
     selectedTask: Task;
 }

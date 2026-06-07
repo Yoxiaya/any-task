@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Task, TaskType } from "../types";
 import { Settings, ChevronRight } from "lucide-react";
 
-// Force file change to trigger GitHub sync update
+
 interface ScheduledTaskDetailProps {
     selectedTask: Task;
     tasks: Task[];
@@ -19,7 +19,7 @@ export default function ScheduledTaskDetail({ selectedTask, tasks, onSave }: Sch
     const [isTaskMenuOpen, setIsTaskMenuOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Update local state when selectedTask changes
+    // 当 selectedTask 变化时更新本地状态
     React.useEffect(() => {
         setMode(selectedTask.scheduledConfig?.mode || "close");
         setCycle(selectedTask.scheduledConfig?.cycle || 1000);
@@ -29,7 +29,7 @@ export default function ScheduledTaskDetail({ selectedTask, tasks, onSave }: Sch
 
     const handleSave = () => {
         setIsSaving(true);
-        // Simulate a brief save animation
+        // 模拟保存动画
         setTimeout(() => {
             onSave({
                 ...selectedTask,
@@ -183,9 +183,9 @@ export default function ScheduledTaskDetail({ selectedTask, tasks, onSave }: Sch
                                                     <ChevronRight size={14} />
                                                 </div>
 
-                                                {/* Submenu */}
+                                                {/* 子菜单 */}
                                                 <div className="absolute left-full top-0 w-64 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-2 hidden group-hover/sub:block max-h-64 overflow-y-auto custom-scrollbar">
-                                                    {/* Bridge to prevent broken touch */}
+                                                    {/* 桥接区域：防止触摸事件中断 */}
                                                     <div className="absolute -left-2 top-0 bottom-0 w-2 bg-transparent" />
                                                     {tasksByType[type].length > 0 ? (
                                                         tasksByType[type].map((task) => (

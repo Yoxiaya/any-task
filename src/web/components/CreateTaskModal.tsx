@@ -19,7 +19,7 @@ export default function CreateTaskModal({ isOpen, onClose, onConfirm, existingTa
     const prevOpen = useRef(false);
 
     useEffect(() => {
-        // Only generate default name when modal transitions from closed → open
+        // 仅在弹窗从关闭变为打开时生成默认名称
         if (isOpen && !prevOpen.current) {
             let baseName = taskType === "定时" ? t("modal.default_scheduled_name") : t("modal.default_process_name");
             let name = baseName;

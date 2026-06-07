@@ -9,10 +9,10 @@ async function startServer() {
 
     app.use(express.json());
 
-    // Use separated API routes
+    // 使用独立的路由模块
     app.use("/api", taskRoutes);
 
-    // Vite middleware for development
+    // 开发模式挂载 Vite 中间件
     if (process.env.NODE_ENV !== "production") {
         const vite = await createViteServer({
             server: {

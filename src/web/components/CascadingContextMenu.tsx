@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronRight, Globe, HardDrive, Plus, Trash2 } from "lucide-react";
 import { Task } from "../types";
 
-// Force file change to trigger GitHub sync update
+
 interface CascadingContextMenuProps {
     x: number;
     y: number;
@@ -28,7 +28,7 @@ export default function CascadingContextMenu({
 }: CascadingContextMenuProps) {
     if (!isOpen) return null;
 
-    // Group tasks by type
+    // 按任务类型分组
     const groupedTasks = tasks.reduce(
         (acc, task) => {
             if (!acc[task.type]) acc[task.type] = [];
@@ -59,7 +59,7 @@ export default function CascadingContextMenu({
                         style={{ left: x, top: y }}
                         className="fixed z-[70] w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-1 overflow-visible"
                     >
-                        {/* Level 1: Add Empty Row */}
+                        {/* 第一级：新增空白行 */}
                         <button
                             onClick={() => {
                                 onAddEmptyRow();
@@ -86,7 +86,7 @@ export default function CascadingContextMenu({
 
                         <div className="h-px bg-outline-variant/10 my-1" />
 
-                        {/* Level 1: Internal Tasks */}
+                        {/* 第一级：内部任务 */}
                         <div className="relative group/l1">
                             <div className="flex items-center justify-between px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer">
                                 <div className="flex items-center gap-2">
@@ -96,9 +96,9 @@ export default function CascadingContextMenu({
                                 <ChevronRight size={14} />
                             </div>
 
-                            {/* Level 2: Task Types */}
+                            {/* 第二级：任务类型 */}
                             <div className="absolute left-full top-0 -ml-px w-48 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-1 hidden group-hover/l1:block">
-                                {/* Bridge to prevent closing */}
+                                {/* 桥接区域：防止菜单意外关闭 */}
                                 <div className="absolute top-0 -left-2 w-2 h-full" />
                                 {taskTypes.map((type) => (
                                     <div key={type} className="relative group/l2">
@@ -107,9 +107,9 @@ export default function CascadingContextMenu({
                                             <ChevronRight size={14} />
                                         </div>
 
-                                        {/* Level 3: Tasks of this type */}
+                                        {/* 第三级：该类型下的任务列表 */}
                                         <div className="absolute left-full top-0 -ml-px w-56 bg-surface-container-lowest border border-outline-variant/20 rounded-xl shadow-2xl py-1 hidden group-hover/l2:block max-h-64 overflow-y-auto custom-scrollbar">
-                                            {/* Bridge to prevent closing */}
+                                            {/* 桥接区域：防止菜单意外关闭 */}
                                             <div className="absolute top-0 -left-2 w-2 h-full" />
                                             {groupedTasks[type].map((task) => (
                                                 <button
@@ -134,7 +134,7 @@ export default function CascadingContextMenu({
                             </div>
                         </div>
 
-                        {/* Level 1: External Tasks */}
+                        {/* 第一级：外部任务 */}
                         <div className="px-4 py-2.5 text-sm text-on-surface hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer border-t border-outline-variant/10">
                             <div className="flex items-center gap-2">
                                 <Globe size={16} />
