@@ -1,8 +1,6 @@
 import express from "express";
 import {
     migrateLegacyData,
-    readAppConfig,
-    writeAppConfig,
     readProjects,
     writeProjects,
     deleteProjectDir,
@@ -23,21 +21,6 @@ migrateLegacyData();
 
 // Helper
 const getProjectId = (req: express.Request): string => (req.query.projectId as string) || "";
-
-// ─── Config ───
-
-router.get("/config", (_req, res) => {
-    res.json(readAppConfig());
-});
-
-router.put("/config", (req, res) => {
-    const { appName, tabTitle } = req.body;
-    const config = readAppConfig();
-    if (appName !== undefined) config.appName = appName;
-    if (tabTitle !== undefined) config.tabTitle = tabTitle;
-    writeAppConfig(config);
-    res.json(config);
-});
 
 // ─── Projects ───
 

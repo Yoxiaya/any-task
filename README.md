@@ -27,7 +27,8 @@
 ├── data/
 │   ├── projects.json         # 项目元数据
 │   └── projects/<id>/db.json # 各项目任务数据
-├── app-config.json           # 应用配置（可提交 git）
+├── .env                      # 环境变量配置
+├── .env.example              # 环境变量模板（可提交 git）
 └── example.md                # 导出数据格式示例
 ```
 
@@ -124,17 +125,17 @@ interface TaskStep {
 | POST | `/import` | 导入合并数据 |
 | POST | `/run` | 日志输出任务数据 |
 
-## 应用配置 (`app-config.json`)
+## 应用配置 (`.env`)
 
-```json
-{
-    "appName": "Any Task",
-    "tabTitle": "Any Task"
-}
+```env
+VITE_APP_NAME=Any Task
+VITE_TAB_TITLE=Any Task
 ```
 
-- `appName`: 首页标题
-- `tabTitle`: 浏览器标签页标题
+- `VITE_APP_NAME`: 首页标题
+- `VITE_TAB_TITLE`: 浏览器标签页标题
+
+> 参考 `.env.example` 查看可用变量。修改 `.env` 后需重启开发服务器才能生效。
 
 ## 功能概览
 

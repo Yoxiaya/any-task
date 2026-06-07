@@ -20,12 +20,11 @@ export default function App() {
     const { t } = useTranslation();
     const { activeProjectId, fetchProjects } = useProjectStore();
     const setProjectId = useTaskStore((s) => s.setProjectId);
-    const { config, fetchConfig } = useAppConfigStore();
+    const { config } = useAppConfigStore();
 
     useEffect(() => {
         fetchProjects();
-        fetchConfig();
-    }, [fetchProjects, fetchConfig]);
+    }, [fetchProjects]);
 
     useEffect(() => {
         document.title = config.tabTitle || "Any Task";

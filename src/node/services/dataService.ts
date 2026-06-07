@@ -7,7 +7,6 @@ import crypto from "crypto";
 const dataDir = path.join(process.cwd(), "data");
 const projectsMetaPath = path.join(dataDir, "projects.json");
 const legacyDbPath = path.join(dataDir, "db.json");
-const configPath = path.join(process.cwd(), "app-config.json");
 
 const getProjectsDir = () => path.join(dataDir, "projects");
 const getProjectDbPath = (projectId: string) => path.join(getProjectsDir(), projectId, "db.json");
@@ -169,13 +168,6 @@ export const buildExportPayload = (db: any, taskId?: string) => {
         })),
     };
 };
-
-// ─── Config ───
-
-const defaultConfig = { appName: "Any Task", tabTitle: "Any Task" };
-
-export const readAppConfig = () => readJson(configPath, defaultConfig);
-export const writeAppConfig = (config: any) => writeJson(configPath, config);
 
 // ─── Migration ───
 
